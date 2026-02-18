@@ -1,7 +1,10 @@
+import 'package:flutter/material.dart'; // For debugPrint
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/features/home_widget/home_widget_service.dart';
-import 'package:business_analytics_chat/features/chat/data/chat_repository.dart';
+import 'package:business_analytics_chat/features/chat/data/conversation_repository.dart'; // Use ConversationRepository
 import 'package:business_analytics_chat/features/auth/state/auth_notifier.dart';
+import 'package:business_analytics_chat/core/config/api_config.dart';
+import 'package:dio/dio.dart'; // Needed for provider
 
 // Models
 class ChatMessage {
@@ -46,81 +49,293 @@ class ChatState {
   final List<Conversation> conversations;
   final String? activeConversationId;
   final bool isLoading;
+  final String? error;
 
   ChatState({
     this.conversations = const [],
     this.activeConversationId,
     this.isLoading = false,
+    this.error,
   });
 
   ChatState copyWith({
     List<Conversation>? conversations,
     String? activeConversationId,
     bool? isLoading,
+    String? error,
   }) {
     return ChatState(
       conversations: conversations ?? this.conversations,
       activeConversationId: activeConversationId ?? this.activeConversationId,
       isLoading: isLoading ?? this.isLoading,
+      error: error, // Allow null to clear error
     );
   }
 }
 
 // Notifier
-final chatRepositoryProvider = Provider((ref) {
-  final authNotifier = ref.read(authProvider.notifier);
-  return ChatRepository(onUnauthorized: () {
-    authNotifier.logout();
-  });
+final conversationRepositoryProvider = Provider((ref) {
+  final dio = Dio(BaseOptions(
+    connectTimeout: ApiConfig.connectTimeout,
+    receiveTimeout: ApiConfig.receiveTimeout,
+    sendTimeout: ApiConfig.sendTimeout,
+  ));
+  return ConversationRepository(dio);
 });
 
 class ChatNotifier extends Notifier<ChatState> {
-  late final ChatRepository _repository;
+  late final ConversationRepository _repository;
 
   @override
   ChatState build() {
-    _repository = ref.read(chatRepositoryProvider);
+    _repository = ref.read(conversationRepositoryProvider);
+    // Auto-load conversations on build
+    Future.microtask(() => loadConversations());
     return ChatState(
-      conversations: [], // Start empty, fetch history later if needed
+      conversations: [], 
       activeConversationId: null,
       isLoading: false,
+      error: null,
     );
   }
 
-  void selectConversation(String id) {
-    state = state.copyWith(activeConversationId: id);
-    // Ideally fetch history here if not already loaded
+  /// Load all conversations
+  Future<void> loadConversations() async {
+    // Prevent redundant rapid calls, but allow refresh
+    if (state.isLoading && state.conversations.isNotEmpty) return;
+
+    // 1. Stale-While-Revalidate: Try Cache First (Instant)
+    try {
+      final cached = await _repository.getCachedConversations();
+      if (cached != null) {
+        final conversations = cached.map((data) {
+          final id = data['conversation_id'] ?? data['id'] ?? data['_id'] ?? '';
+          return Conversation(
+            id: id,
+            title: data['title'] ?? 'New Conversation',
+            lastUpdated: DateTime.parse(data['updated_at'] ?? DateTime.now().toIso8601String()),
+            messages: [], // Message history not in list cache
+          );
+        }).toList();
+
+        // Update state with cached data immediately
+        state = state.copyWith(conversations: conversations);
+        debugPrint('📦 ChatNotifier: Loaded ${conversations.length} conversations from CACHE');
+      }
+    } catch (e) {
+      debugPrint('⚠️ ChatNotifier: Cache load failed: $e');
+    }
+
+    // 2. Fetch Fresh Data (Background)
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final conversationsData = await _repository.getAllConversations();
+      debugPrint('✅ ChatNotifier: Loaded ${conversationsData.length} conversations from NETWORK');
+      
+      final conversations = conversationsData.map((data) {
+        final id = data['conversation_id'] ?? data['id'] ?? data['_id'] ?? '';
+        
+        // Preserve existing messages if we already have this conversation (from cache or previous state)
+        final existingIndex = state.conversations.indexWhere((c) => c.id == id);
+        final existingMessages = existingIndex != -1 
+            ? state.conversations[existingIndex].messages 
+            : <ChatMessage>[];
+
+        return Conversation(
+          id: id,
+          title: data['title'] ?? 'New Conversation',
+          lastUpdated: DateTime.parse(data['updated_at'] ?? DateTime.now().toIso8601String()),
+          messages: existingMessages, 
+        );
+      }).toList();
+
+      state = state.copyWith(
+        conversations: conversations,
+        isLoading: false,
+      );
+    } catch (e) {
+      debugPrint('❌ ChatNotifier: Failed to load conversations: $e');
+      state = state.copyWith(
+        isLoading: false, 
+        // Only show error if we have no data at all
+        error: state.conversations.isEmpty ? e.toString() : null,
+      );
+    }
   }
 
+  /// Select a conversation and load its history
+  Future<void> selectConversation(String conversationId) async {
+    // 1. Update selection immediately
+    state = state.copyWith(
+        activeConversationId: conversationId,
+        error: null,
+    );
+    
+    // Check if we already have messages in memory
+    final existingConv = state.conversations.firstWhere(
+      (c) => c.id == conversationId, 
+      orElse: () => Conversation(id: '', title: '', lastUpdated: DateTime.now(), messages: [])
+    );
+    
+    // If in memory, we are good for now. Detailed refresh happens below.
+    if (existingConv.messages.isNotEmpty) {
+       debugPrint('🚀 ChatNotifier: Using memory messages for $conversationId');
+       // We still might want to refresh from cache/network to get new messages? 
+       // For this strict requirement "faster app startup", we assume memory is fastest.
+       // But if we want to ensure we have latest, we should proceed. 
+       // Let's assume hitting back button -> selectConversation needs to be fast. 
+       // If logic allows, we can return. But let's do the Cache check at least.
+    }
+
+    // 2. Try Cache First (Instant Message History)
+    bool hasCachedHistory = false;
+    try {
+       final cachedHistory = await _repository.getCachedHistory(conversationId);
+       if (cachedHistory != null) {
+          final messagesData = _repository.parseMessages(cachedHistory);
+           final messages = _parseMessagesHelper(messagesData);
+
+           // Update specific conversation with CACHED messages
+            final updatedConversations = state.conversations.map((c) {
+              if (c.id == conversationId) {
+                return Conversation(
+                  id: c.id,
+                  title: c.title,
+                  lastUpdated: c.lastUpdated,
+                  messages: messages,
+                );
+              }
+              return c;
+            }).toList();
+            
+            state = state.copyWith(conversations: updatedConversations);
+            hasCachedHistory = true;
+            debugPrint('📦 ChatNotifier: Loaded ${messages.length} messages from CACHE for $conversationId');
+       }
+    } catch (e) {
+      debugPrint('⚠️ ChatNotifier: Hist Cache load failed: $e');
+    }
+
+    // 3. Fetch Fresh History (Background)
+    
+    // If we have cached history, we don't show global loading spinner, 
+    // maybe just a small indicator or nothing (seamless update).
+    if (!hasCachedHistory && existingConv.messages.isEmpty) {
+      state = state.copyWith(isLoading: true);
+    }
+
+    try {
+      final chatHistory = await _repository.getChatHistory(conversationId);
+      final messagesData = _repository.parseMessages(chatHistory);
+      final messages = _parseMessagesHelper(messagesData);
+
+      // Update specific conversation with FRESH messages
+      final updatedConversations = state.conversations.map((c) {
+        if (c.id == conversationId) {
+          return Conversation(
+            id: c.id,
+            title: c.title,
+            lastUpdated: c.lastUpdated,
+            messages: messages,
+          );
+        }
+        return c;
+      }).toList();
+
+      state = state.copyWith(
+        conversations: updatedConversations,
+        isLoading: false, 
+      );
+      debugPrint('✅ ChatNotifier: Loaded ${messages.length} messages from NETWORK for $conversationId');
+
+    } catch (e) {
+      debugPrint('❌ ChatNotifier: Failed to load chat history: $e');
+      // Don't set global error if we have cached data visible, keeps valid UI state
+      state = state.copyWith(
+        isLoading: false,
+        error: (!hasCachedHistory && existingConv.messages.isEmpty) ? e.toString() : null
+      );
+    }
+  }
+  
+  // Helper to parse messages consistently
+  List<ChatMessage> _parseMessagesHelper(List<Map<String, dynamic>> messagesData) {
+      return messagesData.map((msg) {
+        try {
+          final isUser = msg['role'] == 'user';
+          dynamic rawContent = msg['content_json'];
+          Map<String, dynamic> contentData = {};
+          
+          if (rawContent is Map) {
+            contentData = Map<String, dynamic>.from(rawContent);
+          }
+          
+          List<BlockData> blocks = [];
+          
+          if (isUser) {
+            blocks.add(BlockData(
+              type: 'text', 
+              data: {'text': contentData['question'] ?? contentData['text'] ?? ''}
+            ));
+          } else {
+            if (contentData['blocks'] != null && contentData['blocks'] is List) {
+              final apiBlocks = contentData['blocks'] as List;
+              blocks = apiBlocks.map((b) {
+                if (b is Map) {
+                   return BlockData(
+                    type: b['type'] ?? 'unknown',
+                    data: Map<String, dynamic>.from(b),
+                  );
+                }
+                return BlockData(type: 'unknown', data: {});
+              }).toList();
+            } else if (contentData['summary'] != null) {
+              blocks.add(BlockData(
+                type: 'text',
+                data: {'text': contentData['summary']}
+              ));
+            }
+          }
+          
+          return ChatMessage(
+            id: msg['message_id'] ?? DateTime.now().toString(),
+            content: isUser ? (contentData['question'] ?? '') : (contentData['summary'] ?? ''),
+            isUser: isUser,
+            timestamp: DateTime.now(), 
+            blocks: blocks,
+          );
+        } catch (e) {
+          return null;
+        }
+      }).whereType<ChatMessage>().toList();
+  }
+  
+  // ignore: unused_element
+  Future<void> _loadConversationHistory(String id) async {}
+
   String createNewConversation() {
-    // Just reset the UI state to allow sending a new message which will create the ID
-    state = state.copyWith(activeConversationId: null); // Ensure null
-    return ''; // ID is not known yet
+    debugPrint('✨ ChatNotifier: Preparing new conversation');
+    state = state.copyWith(activeConversationId: null); 
+    return ''; 
   }
 
   void clearActiveConversation() {
-     // We can't use copyWith here because passing null means "keep existing value" in the current implementation
+    debugPrint('🧹 ChatNotifier: Clearing active conversation');
     state = ChatState(
       conversations: state.conversations,
       activeConversationId: null,
       isLoading: state.isLoading,
+      error: null,
     );
   }
 
   Future<void> sendMessage(String content) async {
+    debugPrint('📤 ChatNotifier: Sending message: "$content"');
     // 1. Optimistic Update (User Message)
     final tempId = DateTime.now().toString();
     String? currentId = state.activeConversationId;
     
-    // Create a temporary conversation object if new
-    if (currentId == null) {
-       // We don't have a real ID yet, so we don't add to conversations list yet
-       // OR we add a temporary one. Let's add a temporary one to show the UI immediate feedback.
-       // But waiting for the API response is safer to get the real ID.
-       // Hybrid: detailed local state? 
-       // Simpler: Just set loading, and once response comes, we create the full conversation structure.
-    }
-
     final userMessage = ChatMessage(
           id: tempId,
           content: content,
@@ -143,13 +358,6 @@ class ChatNotifier extends Notifier<ChatState> {
       }).toList();
       state = state.copyWith(conversations: updatedConversations, isLoading: true);
     } else {
-      // New conversation pending... we can show a loader or a temp conversation
-       // For UI responsiveness, let's create a temp place holder
-       // currentId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-       // Actually, let's just wait for the response to create the conversation in the list 
-       // IF it's the very first message.
-       // BUT the UI needs a non-null activeConversation to show the chat screen.
-       // So we MUST create a temporary conversation.
        currentId = 'temp_pending';
        final newConv = Conversation(
          id: currentId,
@@ -167,46 +375,37 @@ class ChatNotifier extends Notifier<ChatState> {
     try {
       // 2. Call API
       // If currentId is temporary, send null to API
-      String? apiConversationId = currentId!.startsWith('temp_') ? null : currentId;
+      String? apiConversationId = currentId.startsWith('temp_') ? null : currentId;
 
-      final response = await _repository.sendMessage(content, apiConversationId);
+      // Use ConversationRepository.sendQuestion
+      final response = await _repository.sendQuestion(
+        question: content,
+        conversationId: apiConversationId,
+      );
 
       // 3. Handle Response
-      final realConversationId = response.conversationId;
+      final realConversationId = response['conversation_id'];
+      final answer = response['answer'];
+      final messageId = response['message_id'];
       
-      // Map API Blocks to UI Blocks
-      final uiBlocks = response.answer.blocks.map((b) {
-        if (b.type == 'text') {
-          return BlockData(type: 'text', data: {'text': b.content ?? ''});
-        } else if (b.type == 'metrics') {
-           return BlockData(type: 'metrics', data: {
-             'metrics': b.metrics?.map((m) => {'label': m.label, 'value': m.value}).toList() ?? []
-           });
-        } else if (b.type == 'table') {
-          return BlockData(type: 'table', data: {
-             'title': b.title,
-             'columns': b.headers ?? [],
-             'rows': b.rows ?? []
-          });
-        } else if (b.type == 'chart') {
-           return BlockData(type: 'chart', data: {
-             'title': b.title,
-             'x_key': b.xKey,
-             'y_keys': b.yKeys,
-             'data': b.data,
-             'chart_type': b.chartType
-           });
-        } else if (b.type == 'suggestions') {
-          return BlockData(type: 'suggestions', data: {
-            'actions': b.items ?? []
-          });
-        }
-        return BlockData(type: 'unknown', data: {});
-      }).toList();
+      // Parse Answer Blocks
+      List<BlockData> uiBlocks = [];
+      if (answer['blocks'] != null) {
+        final apiBlocks = answer['blocks'] as List;
+        uiBlocks = apiBlocks.map((b) => BlockData(
+          type: b['type'] ?? 'unknown',
+          data: b,
+        )).toList();
+      } else if (answer['summary'] != null) {
+        uiBlocks.add(BlockData(
+          type: 'text',
+          data: {'text': answer['summary']}
+        ));
+      }
 
       final botMessage = ChatMessage(
-        id: response.messageId ?? DateTime.now().toString(),
-        content: '', // content handled by blocks
+        id: messageId ?? DateTime.now().toString(),
+        content: answer['summary'] ?? '', // content handled by blocks
         isUser: false,
         timestamp: DateTime.now(),
         blocks: uiBlocks,
@@ -253,12 +452,72 @@ class ChatNotifier extends Notifier<ChatState> {
       HomeWidgetService.updateWidget(title: 'New Insight', message: 'Analysis ready');
 
     } catch (e) {
-      // Revert/Error handling
+      debugPrint('❌ ChatNotifier: Failed to send message: $e');
       state = state.copyWith(isLoading: false);
       // Ideally add an error message to the chat
     }
   }
+  void simulateResponse(Map<String, dynamic> answer) {
+    debugPrint('🧪 ChatNotifier: Simulating response');
+    
+    // Parse Answer Blocks
+    List<BlockData> uiBlocks = [];
+    if (answer['blocks'] != null) {
+      final apiBlocks = answer['blocks'] as List;
+      uiBlocks = apiBlocks.map((b) => BlockData(
+        type: b['type'] ?? 'unknown',
+        data: b,
+      )).toList();
+    } else if (answer['summary'] != null) {
+      uiBlocks.add(BlockData(
+        type: 'text',
+        data: {'text': answer['summary']}
+      ));
+    }
+
+    final botMessage = ChatMessage(
+      id: DateTime.now().toString(),
+      content: answer['summary'] ?? 'Simulated Response',
+      isUser: false,
+      timestamp: DateTime.now(),
+      blocks: uiBlocks,
+    );
+
+    // Update conversation
+    final currentId = state.activeConversationId;
+    if (currentId != null) {
+      final updatedConversations = state.conversations.map((c) {
+        if (c.id == currentId) {
+          return Conversation(
+            id: c.id,
+            title: c.title,
+            lastUpdated: DateTime.now(),
+            messages: [...c.messages, botMessage],
+          );
+        }
+        return c;
+      }).toList();
+
+      state = state.copyWith(
+        conversations: updatedConversations,
+      );
+    } else {
+       // Create new temp conversation if none exists
+       final newId = 'simulated_${DateTime.now().millisecondsSinceEpoch}';
+       final newConv = Conversation(
+         id: newId,
+         title: 'Simulated Chat',
+         lastUpdated: DateTime.now(),
+         messages: [botMessage],
+       );
+       state = state.copyWith(
+         conversations: [newConv, ...state.conversations],
+         activeConversationId: newId,
+       );
+    }
+  }
 }
+
 
 final chatProvider = NotifierProvider<ChatNotifier, ChatState>(ChatNotifier.new);
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/features/auth/state/auth_notifier.dart';
 import 'package:business_analytics_chat/features/auth/presentation/screens/login_screen.dart';
+import 'package:business_analytics_chat/features/auth/presentation/screens/splash_screen.dart';
 import 'package:business_analytics_chat/features/chat/presentation/screens/conversation_screen.dart';
 import 'package:business_analytics_chat/features/chat/presentation/widgets/scaffold_with_sidebar.dart';
 import 'package:business_analytics_chat/features/home_widget/home_widget_placeholder.dart';
@@ -12,13 +13,12 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authNotifier = ref.watch(authProvider.notifier);
-  final authState = ref.watch(authProvider);
+  final routerNotifier = RouterNotifier(ref);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/chat',
-    refreshListenable: _GoRouterRefreshStream(authNotifier.stream), // Or simple ValueNotifier if exposed
+    initialLocation: '/login', // Start at login, redirect will send authenticated users to /chat
+    refreshListenable: routerNotifier,
     // But Notifier stream is available
     // Actually, simpler: Since we watch authState inside the provider, 
     // simply rebuilding the router on state change is NOT ideal (loses nav stack).
@@ -35,24 +35,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     
     // Standard Riverpod+GoRouter pattern:
     redirect: (context, state) {
-      final isLoggedIn = ref.read(authProvider).isAuthenticated;
-      final isLoggingIn = state.uri.path == '/login';
-      final isLoading = ref.read(authProvider).isLoading;
+      final authState = ref.read(authProvider);
+      final isLoggedIn = authState.isAuthenticated;
+      final isLoading = authState.isLoading;
+      final currentPath = state.uri.path;
 
+      // Show splash screen while checking authentication
       if (isLoading) {
-         // Maybe return null or a splash route?
-         // For now, if loading, we might show splash. 
-         // But authState starts loading = true.
-         // Let's just stay put or go to login?
-         return null; 
+        if (currentPath != '/splash') {
+          return '/splash';
+        }
+        return null;
       }
 
-      if (!isLoggedIn && !isLoggingIn) {
-        return '/login';
+      // Auth check complete - redirect based on auth status
+      if (!isLoggedIn) {
+        // Not authenticated - show login unless already there
+        if (currentPath != '/login') {
+          debugPrint('🚧 Router: Redirecting to /login because user is not authenticated.');
+          return '/login';
+        }
+      } else {
+        // Authenticated - redirect to chat if on login or splash
+        if (currentPath == '/login' || currentPath == '/splash') {
+          debugPrint('🚧 Router: Redirecting to /chat because user is authenticated.');
+          return '/chat';
+        }
       }
-      if (isLoggedIn && isLoggingIn) {
-        return '/chat';
-      }
+      
+      debugPrint('🚧 Router: No redirect needed for path: $currentPath');
       return null;
     },
     routes: [
@@ -64,20 +75,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/chat',
-            builder: (context, state) => const ConversationScreen(conversationId: null),
+            builder: (context, state) => const ConversationScreen(key: ValueKey('new'), conversationId: null),
             routes: [
               GoRoute(
                 path: ':id',
                 builder: (context, state) {
                   final id = state.pathParameters['id'];
-                  return ConversationScreen(conversationId: id);
+                  return ConversationScreen(key: ValueKey(id), conversationId: id);
                 },
               ),
             ],
           ),
         ],
       ),
-       GoRoute(
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
         path: '/home_widget',
         builder: (context, state) => const HomeWidgetPlaceholder(),
       ),
@@ -86,23 +101,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
     ],
+    debugLogDiagnostics: true, // Enable Router logging
   );
 });
 
-class _GoRouterRefreshStream extends ChangeNotifier {
-  _GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
-    _subscription = stream.asBroadcastStream().listen(
-      (dynamic _) => notifyListeners(),
+
+class RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+
+  RouterNotifier(this._ref) {
+    _ref.listen<AuthState>(
+      authProvider,
+      (_, __) => notifyListeners(),
     );
   }
-
-  late final StreamSubscription<dynamic> _subscription;
-
-  @override
-  void dispose() {
-    _subscription.cancel();
-    super.dispose();
-  }
 }
+
 

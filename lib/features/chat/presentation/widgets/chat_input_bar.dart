@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/features/chat/state/chat_state.dart';
-import 'package:business_analytics_chat/core/constants/ui_constants.dart';
 
 class ChatInputBar extends ConsumerStatefulWidget {
   final bool isProminent;
@@ -26,95 +25,137 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
 
   @override
   Widget build(BuildContext context) {
-    // If prominent (New Chat), use floating card style with white background.
-    // If default (Active Chat), use standard bottom bar style.
-        
-    final fillColor = widget.isProminent
-        ? Colors.white // Explicit white for Gemini look
-        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
-        
-    final containerDecoration = widget.isProminent
-        ? BoxDecoration(
-            color: Colors.transparent, // floating container has no bg, the inner text field container will have it (or we wrap the whole row)
-          )
-        : BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          );
-
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    
+    // Gemini: Input is always floating at bottom, constrained width
     return Container(
-      padding: widget.isProminent 
-          ? const EdgeInsets.fromLTRB(24, 0, 24, 24) // Float above bottom
-          : const EdgeInsets.symmetric(
-              horizontal: UIConstants.paddingMedium,
-              vertical: UIConstants.paddingMedium,
-            ),
-      decoration: containerDecoration,
-      child: SafeArea(
-        child: widget.isProminent 
-          ? Container(
-             // The floating pill container
-             decoration: BoxDecoration(
-               color: Colors.white,
-               borderRadius: BorderRadius.circular(32),
-               boxShadow: [
-                 BoxShadow(
-                   color: Colors.black.withValues(alpha: 0.1),
-                   blurRadius: 12,
-                   offset: const Offset(0, 4),
-                 ),
-               ],
-             ),
-             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-             child: _buildInputRow(fillColor: Colors.transparent, showSendButton: true),
-          )
-          : _buildInputRow(fillColor: fillColor, showSendButton: true),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor, // Opaque background
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+            width: 1,
+          ),
+        ),
       ),
-    );
-  }
-
-  Widget _buildInputRow({required Color fillColor, required bool showSendButton}) {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _controller,
-            onChanged: (text) {
-              setState(() {
-                _isComposing = text.trim().isNotEmpty;
-              });
-            },
-            onSubmitted: _handleSubmitted,
-            decoration: InputDecoration(
-              hintText: widget.isProminent ? 'Ask here !!' : 'Ask about business insights...', // Matching screenshot hint purely for style, user can change
-              hintStyle: const TextStyle(color: Colors.grey),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide.none,
+      padding: EdgeInsets.fromLTRB(
+        isMobile ? 16 : 24, 
+        12, 
+        isMobile ? 16 : 24, 
+        isMobile ? 16 : 24, // Bottom padding for navigation bar
+      ),
+      child: SafeArea(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800), // Gemini max width
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF1E1F20) // Dark surface
+                        : const Color(0xFFF0F4F9), // Light surface (Gemini grey)
+                borderRadius: BorderRadius.circular(32),
+                // Gemini: very subtle or no shadow in dark mode, light shadow in light mode
+                boxShadow: Theme.of(context).brightness == Brightness.light ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ] : null,
               ),
-              filled: true,
-              fillColor: fillColor,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: UIConstants.paddingMedium,
-                vertical: UIConstants.paddingSmall + 4,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 120),
+                      child: TextField(
+                        controller: _controller,
+                        onChanged: (text) => setState(() => _isComposing = text.trim().isNotEmpty),
+                        onSubmitted: _handleSubmitted,
+                        maxLines: null, // Grows with text
+                        minLines: 1,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: 'Ask anything...',
+                          hintStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 16,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 0,
+                          ),
+                        ),
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.4,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Send Button
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _isComposing
+                        ? IconButton(
+                            key: const ValueKey('send'),
+                            onPressed: () => _handleSubmitted(_controller.text),
+                            icon: const Icon(Icons.arrow_upward_rounded),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              fixedSize: const Size(40, 40),
+                              padding: EdgeInsets.zero,
+                            ),
+                          )
+                        : IconButton(
+                            key: const ValueKey('disabled'),
+                            onPressed: null, // Disabled state
+                            icon: const Icon(Icons.arrow_upward_rounded),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                              fixedSize: const Size(40, 40),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
               ),
             ),
           ),
         ),
-        const SizedBox(width: UIConstants.paddingSmall),
-        if (_isComposing || !widget.isProminent) 
-          IconButton.filled(
-            onPressed: _isComposing ? () => _handleSubmitted(_controller.text) : null,
-            icon: const Icon(Icons.arrow_upward),
-             style: widget.isProminent ? IconButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white) : null,
-          ),
       ],
-    );
+    ),
+  ),
+);
+  }
+
+  Widget _buildInputRow({
+    required Color fillColor,
+    required bool showSendButton,
+    required bool isMobile,
+  }) {
+      return const SizedBox.shrink(); // Deprecated helper
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

@@ -1,6 +1,8 @@
 
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/features/auth/services/auth_service.dart';
+import 'package:business_analytics_chat/core/services/cache_service.dart';
 
 class AuthState {
   final bool isAuthenticated;
@@ -34,23 +36,47 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
     _authService = ref.read(authServiceProvider);
-    _checkAuthStatus();
+    // Start the auth check asynchronously
+    Future.microtask(() => _checkAuthStatus());
+    // Return initial loading state
     return AuthState(isLoading: true); 
   }
 
   Future<void> _checkAuthStatus() async {
-    state = state.copyWith(isLoading: true);
     try {
-      final token = await _authService.getToken();
-      if (token != null && !_authService.isTokenExpired(token)) {
-         state = state.copyWith(isAuthenticated: true, isLoading: false);
-      } else {
-        await _authService.deleteToken();
-        state = state.copyWith(isAuthenticated: false, isLoading: false);
-      }
+      // Add timeout to prevent infinite loading
+      await Future.any([
+        _performAuthCheck(),
+        Future.delayed(const Duration(seconds: 5), () {
+          throw TimeoutException('Auth check timeout');
+        }),
+      ]);
     } catch (e) {
-      state = state.copyWith(isAuthenticated: false, isLoading: false, error: e.toString());
+      // On timeout or any error, go to login
+      print('Auth check error: $e');
+      state = state.copyWith(isAuthenticated: false, isLoading: false);
     }
+  }
+
+  Future<void> _performAuthCheck() async {
+    final token = await _authService.getToken();
+    
+    // If no token, go to login
+    if (token == null || token.isEmpty) {
+      state = state.copyWith(isAuthenticated: false, isLoading: false);
+      return;
+    }
+    
+    // Check if token is expired
+    if (_authService.isTokenExpired(token)) {
+      // Token expired, delete it and go to login
+      await _authService.deleteToken();
+      state = state.copyWith(isAuthenticated: false, isLoading: false);
+      return;
+    }
+    
+    // Token is valid, go to chat
+    state = state.copyWith(isAuthenticated: true, isLoading: false);
   }
 
   Future<void> login(String email, String password) async {
@@ -66,6 +92,10 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> logout() async {
     await _authService.deleteToken();
+    try {
+      // Clear all cache on logout to be safe
+      await CacheService().clearAll();
+    } catch (_) {}
     state = state.copyWith(isAuthenticated: false);
   }
 }

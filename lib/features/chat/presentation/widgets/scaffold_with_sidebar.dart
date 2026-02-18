@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:business_analytics_chat/features/chat/presentation/widgets/sidebar.dart';
-import 'package:business_analytics_chat/core/constants/ui_constants.dart';
 
 class ScaffoldWithSidebar extends StatelessWidget {
   final Widget child;
@@ -9,24 +8,14 @@ class ScaffoldWithSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isDesktop = width > 800; // Breakpoint
-
-    if (!isDesktop) {
-      return child;
-    }
-
     return Scaffold(
-      body: Row(
-        children: [
-          const SizedBox(
-            width: UIConstants.sidebarWidth,
-            child: Sidebar(),
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(child: child),
-        ],
+      // Sidebar as drawer (can be opened programmatically if needed)
+      endDrawer: Drawer(
+        width: 300,
+        child: const Sidebar(),
       ),
+      // Main content
+      body: child,
     );
   }
 }

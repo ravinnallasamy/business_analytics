@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter/foundation.dart'; // Add this import
+
 class HomeWidgetService {
   static const String appGroupId = 'group.business_analytics_chat'; // Use your actual App Group ID
   static const String androidWidgetName = 'HomeWidgetProvider'; // Must match Android XML
@@ -11,6 +13,7 @@ class HomeWidgetService {
     required String title,
     required String message,
   }) async {
+    if (kIsWeb) return; // Plugin not supported on web
     try {
       await HomeWidget.saveWidgetData<String>('title', title);
       await HomeWidget.saveWidgetData<String>('message', message);
@@ -25,6 +28,8 @@ class HomeWidgetService {
 
   /// Initialize and check if app was launched via widget
   static Future<void> init(BuildContext context) async {
+    if (kIsWeb) return; // Plugin not supported on web
+    
     // Check if launched from widget
     final Uri? widgetUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
     if (widgetUri != null) {
