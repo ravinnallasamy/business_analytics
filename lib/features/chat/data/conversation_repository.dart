@@ -99,12 +99,15 @@ class ConversationRepository {
 
         // CACHE UPDATE
         if (userId != null) {
-          // Cache list for 10 minutes (Stale-While-Revalidate handles UX)
-          await _cache.set(
-            _conversationsKey(userId), 
-            conversations, 
-            const Duration(minutes: 10),
-          );
+          try {
+            await _cache.set(
+              _conversationsKey(userId), 
+              conversations, 
+              const Duration(minutes: 10),
+            );
+          } catch (e) {
+            debugPrint('⚠️ ConversationRepository: Cache update failed: $e');
+          }
         }
 
         return conversations;
@@ -175,12 +178,15 @@ class ConversationRepository {
        
         // CACHE UPDATE
         if (userId != null) {
-          // Cache history for 1 day (Message history is static mostly)
-          await _cache.set(
-            _historyKey(userId, conversationId), 
-            data, 
-            const Duration(days: 1),
-          );
+          try {
+            await _cache.set(
+              _historyKey(userId, conversationId), 
+              data, 
+              const Duration(days: 1),
+            );
+          } catch (e) {
+            debugPrint('⚠️ ConversationRepository: History cache update failed: $e');
+          }
         }
 
         return data;
