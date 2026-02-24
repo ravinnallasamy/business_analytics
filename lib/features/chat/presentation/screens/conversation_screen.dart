@@ -84,6 +84,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   @override
   Widget build(BuildContext context) {
     debugPrint('🛠️ ConversationScreen: build called. ID: ${widget.conversationId}, Active: ${ref.watch(activeConversationProvider)?.id}');
+    final chatState = ref.watch(chatProvider);
     final activeConversation = ref.watch(activeConversationProvider);
     // Removed isDesktop check to show drawer always
     final isNewChat = widget.conversationId == null;
@@ -91,9 +92,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
 
     // Instead of blocking with a full-screen spinner, we show a skeleton UI
-    // while the active conversation is being updated.
+    // while the active conversation is being updated or loaded from API.
     final isMismatch = !isNewChat && activeConversation?.id != widget.conversationId;
-    final isLoading = (activeConversation == null && !isNewChat) || isMismatch;
+    final isFetchingHistory = !isNewChat && chatState.isLoading && (activeConversation == null || activeConversation.messages.isEmpty);
+    final isLoading = (activeConversation == null && !isNewChat) || isMismatch || isFetchingHistory;
 
     return Scaffold(
       extendBodyBehindAppBar: false,
@@ -197,10 +199,28 @@ class _MessageSkeletonList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      itemCount: 5,
-      itemBuilder: (context, index) => const _MessageSkeleton(),
+    return Stack(
+      children: [
+        ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          itemCount: 5,
+          itemBuilder: (context, index) => const _MessageSkeleton(),
+        ),
+        Positioned.fill(
+          child: Container(
+            color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5),
+            child: const Center(
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

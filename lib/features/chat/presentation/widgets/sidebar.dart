@@ -98,17 +98,11 @@ class _SidebarState extends ConsumerState<Sidebar> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Branding ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 200),
-              child: Image.asset(
-                'assets/orient-logo.jpg',
-                height: 40,
-                fit: BoxFit.contain,
-                alignment: Alignment.centerLeft,
-              ),
-            ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 20, 24, 0),
+            // The constraint box is replaced by an empty sized box to maintain height 
+            // if needed, or we rely on the 40 padding. Let's just give it the 40 height.
+            child: SizedBox(height: 40),
           ),
           // ── New Chat Button & Refresh ──
           Padding(
