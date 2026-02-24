@@ -100,10 +100,14 @@ class _SidebarState extends ConsumerState<Sidebar> {
           // ── Branding ──
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-            child: Image.asset(
-              'assets/orient-logo.jpg',
-              height: 40,
-              alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 200),
+              child: Image.asset(
+                'assets/orient-logo.jpg',
+                height: 40,
+                fit: BoxFit.contain,
+                alignment: Alignment.centerLeft,
+              ),
             ),
           ),
           // ── New Chat Button & Refresh ──
@@ -131,7 +135,13 @@ class _SidebarState extends ConsumerState<Sidebar> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                       ),
                       icon: const Icon(Icons.add, size: 20, color: Color(0xFFE3E3E3)),
-                      label: const Text('New chat', style: TextStyle(fontWeight: FontWeight.w500)),
+                      label: Text(
+                        'New chat', 
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFE3E3E3),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -163,10 +173,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
                child: TextField(
                  controller: _searchController,
                  onChanged: (val) => setState(() => _searchQuery = val),
-                 style: const TextStyle(color: Colors.white, fontSize: 13),
+                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
                  decoration: InputDecoration(
                    hintText: 'Search chats',
-                   hintStyle: TextStyle(color: Colors.grey[500], fontSize: 13),
+                   hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
                    prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey[500]),
                    filled: true,
                    fillColor: const Color(0xFF28292A),
@@ -182,33 +192,38 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
           // ── Conversation List ──
           Expanded(
-            child: chatState.conversations.isEmpty
-                ? _buildEmptyState()
-                : ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                    children: groups.map((group) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
-                            child: Text(
-                              group,
-                              style: const TextStyle(
-                                color: Color(0xFF8E9196), // Muted text
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          ...groupedConversations[group]!.map((conv) {
-                            final isActive = conv.id == activeId;
-                            return _buildConversationItem(conv, isActive, context);
-                          }),
-                        ],
-                      );
-                    }).toList(),
-                  ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: chatState.isLoading && chatState.conversations.isEmpty
+                  ? const _SidebarSkeleton()
+                  : chatState.conversations.isEmpty
+                      ? _buildEmptyState()
+                      : ListView(
+                          key: const ValueKey('conv_list'),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          children: groups.map((group) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+                                  child: Text(
+                                    group,
+                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: const Color(0xFF8E9196),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                ...groupedConversations[group]!.map((conv) {
+                                  final isActive = conv.id == activeId;
+                                  return _buildConversationItem(conv, isActive, context);
+                                }),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+            ),
           ),
 
           // ── User Profile ──
@@ -224,7 +239,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
                   backgroundColor: const Color(0xFF444746),
                   child: Text(
                     _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                     style: const TextStyle(color: Colors.white, fontSize: 14),
+                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                       color: Colors.white,
+                       fontWeight: FontWeight.bold,
+                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -234,19 +252,17 @@ class _SidebarState extends ConsumerState<Sidebar> {
                     children: [
                       Text(
                         _userName,
-                        style: const TextStyle(
-                          color: Color(0xFFE3E3E3),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFFE3E3E3),
+                          fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         _userRole,
-                        style: const TextStyle(
-                          color: Color(0xFF8E9196),
-                          fontSize: 11,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: const Color(0xFF8E9196),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -302,7 +318,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
             const SizedBox(height: 16),
             Text(
               'No conversations yet',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[500]),
             ),
         ],
       ),
@@ -334,9 +350,8 @@ class _SidebarState extends ConsumerState<Sidebar> {
                 Expanded(
                   child: Text(
                     conv.title,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: isActive ? const Color(0xFFD3E3FD) : const Color(0xFFE3E3E3),
-                      fontSize: 13,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                     ),
                     maxLines: 1,
@@ -363,6 +378,27 @@ class _SidebarState extends ConsumerState<Sidebar> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarSkeleton extends StatelessWidget {
+  const _SidebarSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Colors.white.withOpacity(0.05);
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: 8,
+      itemBuilder: (context, index) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        height: 36,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(18),
         ),
       ),
     );

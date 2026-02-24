@@ -13,6 +13,7 @@ class ChatMessage {
   final bool isUser;
   final DateTime timestamp;
   final List<BlockData> blocks; // For assistant structured response
+  final bool isLoading;
 
   ChatMessage({
     required this.id,
@@ -20,6 +21,7 @@ class ChatMessage {
     required this.isUser,
     required this.timestamp,
     this.blocks = const [],
+    this.isLoading = false,
   });
 }
 
@@ -136,7 +138,6 @@ class ChatNotifier extends Notifier<ChatState> {
       final conversations = conversationsData.map((data) {
         final id = data['conversation_id'] ?? data['id'] ?? data['_id'] ?? '';
         
-        // Preserve existing messages if we already have this conversation (from cache or previous state)
         final existingIndex = state.conversations.indexWhere((c) => c.id == id);
         final existingMessages = existingIndex != -1 
             ? state.conversations[existingIndex].messages 
@@ -154,14 +155,60 @@ class ChatNotifier extends Notifier<ChatState> {
         conversations: conversations,
         isLoading: false,
       );
+
+      // Prefetch the most recent conversation's history in the background
+      if (conversations.isNotEmpty && state.activeConversationId == null) {
+        Future.microtask(() => prefetchHistory(conversations.first.id));
+      }
     } catch (e) {
       debugPrint('❌ ChatNotifier: Failed to load conversations: $e');
       state = state.copyWith(
         isLoading: false, 
-        // Only show error if we have no data at all
         error: state.conversations.isEmpty ? e.toString() : null,
       );
     }
+  }
+
+  /// Prefetch history for a conversation without updating global loading state
+  Future<void> prefetchHistory(String conversationId) async {
+    try {
+      // Only prefetch if we don't already have messages
+      final conv = state.conversations.firstWhere((c) => c.id == conversationId, orElse: () => Conversation(id: '', title: '', lastUpdated: DateTime.now(), messages: []));
+      if (conv.messages.isNotEmpty) return;
+
+      debugPrint('🔍 ChatNotifier: Prefetching history for $conversationId');
+      
+      // Try cache first
+      final cachedHistory = await _repository.getCachedHistory(conversationId);
+      if (cachedHistory != null) {
+        final messagesData = _repository.parseMessages(cachedHistory);
+        final messages = _parseMessagesHelper(messagesData);
+        _updateConversationMessages(conversationId, messages);
+      }
+
+      // Fetch fresh in background
+      final chatHistory = await _repository.getChatHistory(conversationId);
+      final messagesData = _repository.parseMessages(chatHistory);
+      final messages = _parseMessagesHelper(messagesData);
+      _updateConversationMessages(conversationId, messages);
+    } catch (e) {
+      debugPrint('⚠️ ChatNotifier: Prefetch failed for $conversationId: $e');
+    }
+  }
+
+  void _updateConversationMessages(String conversationId, List<ChatMessage> messages) {
+    final updatedConversations = state.conversations.map((c) {
+      if (c.id == conversationId) {
+        return Conversation(
+          id: c.id,
+          title: c.title,
+          lastUpdated: c.lastUpdated,
+          messages: messages,
+        );
+      }
+      return c;
+    }).toList();
+    state = state.copyWith(conversations: updatedConversations);
   }
 
   /// Select a conversation and load its history
@@ -343,6 +390,15 @@ class ChatNotifier extends Notifier<ChatState> {
           timestamp: DateTime.now(),
     );
 
+    // 1.5 Add loading assistant message
+    final loadingMessage = ChatMessage(
+          id: 'loading_$tempId',
+          content: '',
+          isUser: false,
+          timestamp: DateTime.now(),
+          isLoading: true,
+    );
+
     // Update locally to show user message immediately
     if (currentId != null) {
       final updatedConversations = state.conversations.map((c) {
@@ -351,24 +407,23 @@ class ChatNotifier extends Notifier<ChatState> {
             id: c.id,
             title: c.title,
             lastUpdated: DateTime.now(),
-            messages: [...c.messages, userMessage],
+            messages: [...c.messages, userMessage, loadingMessage],
           );
         }
         return c;
       }).toList();
-      state = state.copyWith(conversations: updatedConversations, isLoading: true);
+      state = state.copyWith(conversations: updatedConversations);
     } else {
        currentId = 'temp_pending';
        final newConv = Conversation(
          id: currentId,
          title: content,
          lastUpdated: DateTime.now(),
-         messages: [userMessage],
+         messages: [userMessage, loadingMessage],
        );
        state = state.copyWith(
          conversations: [newConv, ...state.conversations],
          activeConversationId: currentId,
-         isLoading: true,
        );
     }
 
@@ -418,12 +473,14 @@ class ChatNotifier extends Notifier<ChatState> {
         // Replace temp conversation with real one
         finalConversations = state.conversations.map((c) {
           if (c.id == currentId) {
-             return Conversation(
-               id: realConversationId,
-               title: c.title,
-               lastUpdated: DateTime.now(),
-               messages: [...c.messages, botMessage],
-             );
+              // Remove the loading message and add real message
+              final msgs = c.messages.where((m) => !m.isLoading).toList();
+              return Conversation(
+                id: realConversationId,
+                title: c.title,
+                lastUpdated: DateTime.now(),
+                messages: [...msgs, botMessage],
+              );
           }
           return c;
         }).toList();
@@ -432,11 +489,13 @@ class ChatNotifier extends Notifier<ChatState> {
         // Update existing
         finalConversations = state.conversations.map((c) {
           if (c.id == currentId) {
+            // Remove the loading message and add real message
+            final msgs = c.messages.where((m) => !m.isLoading).toList();
             return Conversation(
               id: c.id,
               title: c.title,
               lastUpdated: DateTime.now(),
-              messages: [...c.messages, botMessage],
+              messages: [...msgs, botMessage],
             );
           }
           return c;
@@ -453,8 +512,23 @@ class ChatNotifier extends Notifier<ChatState> {
 
     } catch (e) {
       debugPrint('❌ ChatNotifier: Failed to send message: $e');
-      state = state.copyWith(isLoading: false);
-      // Ideally add an error message to the chat
+      // Remove loading message on error
+      if (currentId != null) {
+        final updatedConversations = state.conversations.map((c) {
+          if (c.id == currentId) {
+            return Conversation(
+              id: c.id,
+              title: c.title,
+              lastUpdated: c.lastUpdated,
+              messages: c.messages.where((m) => !m.isLoading).toList(),
+            );
+          }
+          return c;
+        }).toList();
+        state = state.copyWith(conversations: updatedConversations, isLoading: false);
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     }
   }
   void simulateResponse(Map<String, dynamic> answer) {
@@ -517,7 +591,6 @@ class ChatNotifier extends Notifier<ChatState> {
     }
   }
 }
-
 
 final chatProvider = NotifierProvider<ChatNotifier, ChatState>(ChatNotifier.new);
 

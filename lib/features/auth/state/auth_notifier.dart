@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/features/auth/services/auth_service.dart';
 import 'package:business_analytics_chat/core/services/cache_service.dart';
+import 'package:business_analytics_chat/features/chat/state/chat_state.dart';
 
 class AuthState {
   final bool isAuthenticated;
@@ -85,6 +86,8 @@ class AuthNotifier extends Notifier<AuthState> {
       final token = await _authService.login(email, password);
       await _authService.saveToken(token);
       state = state.copyWith(isAuthenticated: true, isLoading: false);
+      // Prefetch conversations once authenticated
+      ref.read(chatProvider.notifier).loadConversations();
     } catch (e) {
       state = state.copyWith(isAuthenticated: false, isLoading: false, error: e.toString());
     }

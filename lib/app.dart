@@ -10,8 +10,8 @@ class BusinessAnalyticsApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       title: 'Orient Analytics',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: AppTheme.getTheme(context, Brightness.light),
+      darkTheme: AppTheme.getTheme(context, Brightness.dark),
       themeMode: ThemeMode.system,
       routerConfig: ref.watch(appRouterProvider),
       debugShowCheckedModeBanner: false,

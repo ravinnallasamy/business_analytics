@@ -190,16 +190,9 @@ class _TableBlockState extends State<TableBlock> {
     final totalWidth = widths.fold(0.0, (sum, w) => sum + w);
 
     // 4. Alignments
-    final alignments = List<Alignment>.generate(displayColumns.length, (index) {
-       // Simple heuristic: check first non-empty row
-       if (displayRows.isNotEmpty) {
-          final val = displayRows.first[index];
-          if (val is num || (val is String && num.tryParse(val.replaceAll(RegExp(r'[^0-9.]'), '')) != null)) {
-             return Alignment.centerRight;
-          }
-       }
-       return Alignment.centerLeft;
-    });
+    // Headers are centered, Data is left-aligned as requested
+    const headerAlignment = Alignment.center;
+    const dataAlignment = Alignment.centerLeft;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -288,11 +281,10 @@ class _TableBlockState extends State<TableBlock> {
                    child: Table(
                      columnWidths: tableColumnWidths,
                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                     border: TableBorder(
-                        horizontalInside: BorderSide(
-                          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
-                          width: 1,
-                        ),
+                     border: TableBorder.all(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 1,
+                        borderRadius: BorderRadius.circular(4),
                      ),
                      children: [
                        // Header Row
@@ -304,16 +296,17 @@ class _TableBlockState extends State<TableBlock> {
                          children: List.generate(displayColumns.length, (index) {
                            return Padding(
                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                             child: Text(
-                               displayColumns[index],
-                               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                 fontWeight: FontWeight.bold,
-                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
+                             child: Align(
+                               alignment: headerAlignment,
+                               child: Text(
+                                 displayColumns[index],
+                                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                   fontWeight: FontWeight.bold,
+                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                 ),
+                                 textAlign: TextAlign.center,
+                                 softWrap: false,
                                ),
-                               textAlign: alignments[index] == Alignment.centerRight 
-                                  ? TextAlign.right 
-                                  : TextAlign.left,
-                               softWrap: false,
                              ),
                            );
                          }),
@@ -326,11 +319,10 @@ class _TableBlockState extends State<TableBlock> {
                              return Padding(
                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                child: Align(
-                                 alignment: alignments[index],
+                                 alignment: dataAlignment,
                                  child: SelectableText( // Allow copying
                                    val.toString(),
                                    style: Theme.of(context).textTheme.bodyMedium,
-                                   toolbarOptions: const ToolbarOptions(copy: true, selectAll: true),
                                    maxLines: 1, // Keep rows aligned
                                    // Note: User asked to NOT truncate important data.
                                    // "No wrapping that breaks row alignment" implies single line.

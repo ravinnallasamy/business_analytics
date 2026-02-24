@@ -90,27 +90,41 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
 
 
-    // Show loading only if ID provided but not found, AND not creating new
-    // Also show loading if there is a mismatch between requested ID and active ID (transitioning)
+    // Instead of blocking with a full-screen spinner, we show a skeleton UI
+    // while the active conversation is being updated.
     final isMismatch = !isNewChat && activeConversation?.id != widget.conversationId;
-    
-    if ((activeConversation == null && !isNewChat) || isMismatch) {
-       return const Scaffold(
-         body: Center(child: CircularProgressIndicator()),
-       );
-    }
+    final isLoading = (activeConversation == null && !isNewChat) || isMismatch;
 
     return Scaffold(
-      extendBodyBehindAppBar: false, // Fix header: content scolls UNDER it, not behind it
+      extendBodyBehindAppBar: false,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Solid background
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: Text(
-          activeConversation?.title ?? 'Orient Analytics',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w500,
-            fontSize: 18,
+        title: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/orient-logo.jpg',
+                height: 24,
+                width: 24,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  activeConversation?.title ?? 'Orient Analytics',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
         centerTitle: true,
@@ -118,14 +132,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           builder: (context) {
             return IconButton(
               icon: const Icon(Icons.menu_rounded), 
-              onPressed: () async {
-                debugPrint('🍔 Menu button clicked');
-                // Show Access Token
-                const storage = FlutterSecureStorage();
-                final token = await storage.read(key: 'auth_token');
-                debugPrint('🔑 Access Token: $token');
-                // Refresh Sidebar API
-                ref.read(chatProvider.notifier).loadConversations();
+              onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
             );
@@ -133,47 +140,95 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         ),
       ),
       drawer: const Drawer(child: Sidebar()),
-      body: Stack(
-        children: [
-          // Content Layer
-          Positioned.fill(
-            child: activeConversation != null
-              ? ListView.builder(
-                  controller: _scrollController,
-                  reverse: true,
-                  physics: const AlwaysScrollableScrollPhysics(), 
-                  // Add padding at bottom for input bar
-                  padding: const EdgeInsets.only(
-                    top: 16, // Small top padding
-                    bottom: 180, // Space for Floating Input
-                    left: 0,
-                    right: 0,
-                  ),
-                  itemCount: activeConversation.messages.length,
-                  itemBuilder: (context, index) {
-                    final reversedIndex = activeConversation.messages.length - 1 - index;
-                    final message = activeConversation.messages[reversedIndex];
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 800), // Center content on wide screens
-                        child: MessageView(message: message),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: isLoading
+          ? const _MessageSkeletonList()
+          : Stack(
+              key: ValueKey(activeConversation?.id ?? 'new'),
+              children: [
+                // Content Layer
+                Positioned.fill(
+                  child: activeConversation != null
+                    ? ListView.builder(
+                        controller: _scrollController,
+                        reverse: true,
+                        physics: const AlwaysScrollableScrollPhysics(), 
+                        padding: const EdgeInsets.only(
+                          top: 16,
+                          bottom: 100,
+                          left: 0,
+                          right: 0,
+                        ),
+                        itemCount: activeConversation.messages.length,
+                        itemBuilder: (context, index) {
+                          final reversedIndex = activeConversation.messages.length - 1 - index;
+                          final message = activeConversation.messages[reversedIndex];
+                          return Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 800),
+                              child: MessageView(message: message),
+                            ),
+                          );
+                        },
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.only(bottom: 100),
+                        child: _NewChatWelcome(onSuggestionTap: (question) {
+                          ref.read(chatProvider.notifier).sendMessage(question);
+                        }),
                       ),
-                    );
-                  },
-                )
-              : Padding(
-                  padding: const EdgeInsets.only(bottom: 100),
-                  child: _NewChatWelcome(onSuggestionTap: (question) {
-                    ref.read(chatProvider.notifier).sendMessage(question);
-                  }),
                 ),
+                
+                // Floating Input Layer
+                const Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ChatInputBar(isProminent: false),
+                ),
+              ],
+            ),
+      ),
+    );
+  }
+}
+
+class _MessageSkeletonList extends StatelessWidget {
+  const _MessageSkeletonList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      itemCount: 5,
+      itemBuilder: (context, index) => const _MessageSkeleton(),
+    );
+  }
+}
+
+class _MessageSkeleton extends StatelessWidget {
+  const _MessageSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark ? Colors.white12 : Colors.black.withOpacity(0.05);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(radius: 12, backgroundColor: color),
+              const SizedBox(width: 12),
+              Container(width: 100, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
+            ],
           ),
-          
-          // Floating Input Layer
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: ChatInputBar(isProminent: false), // isProminent ignored now
-          ),
+          const SizedBox(height: 12),
+          Container(width: double.infinity, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
+          const SizedBox(height: 8),
+          Container(width: MediaQuery.of(context).size.width * 0.7, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
         ],
       ),
     );
@@ -274,18 +329,15 @@ class _NewChatWelcomeState extends State<_NewChatWelcome> {
             children: [
               Text(
                 _userName.isNotEmpty ? 'Hello, $_userName' : 'Hello there',
-                style: TextStyle(
-                  fontSize: isMobile ? 44 : 56,
-                  fontWeight: FontWeight.w500, // Google Sans medium feel
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
                   letterSpacing: -1.0,
-                  color: const Color(0xFFC4C7C5), // Unselected/Grey start
                 ).copyWith(foreground: Paint()..shader = gradient.createShader(const Rect.fromLTWH(0, 0, 200, 70))),
               ),
               Text(
                 'How can I help you today?',
-                style: TextStyle(
-                  fontSize: isMobile ? 44 : 56,
-                  fontWeight: FontWeight.w500,
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
                   height: 1.1,
                   letterSpacing: -1.0,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2), // Faded look

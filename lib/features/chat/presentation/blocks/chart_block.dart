@@ -263,9 +263,8 @@ class ChartBlock extends StatelessWidget {
                 );
                 final label = Text(
                   text,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
                 );
@@ -294,7 +293,7 @@ class ChartBlock extends StatelessWidget {
                   space: 4,
                   child: Text(
                     _formatY(value),
-                    style: const TextStyle(fontSize: 10),
+                    style: Theme.of(context).textTheme.labelSmall,
                   ),
                 );
               },
@@ -404,7 +403,7 @@ class ChartBlock extends StatelessWidget {
                 );
                 final label = Text(
                   text,
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 );
                 return SideTitleWidget(
@@ -428,7 +427,7 @@ class ChartBlock extends StatelessWidget {
                   space: 4,
                   child: Text(
                     _formatY(value),
-                    style: const TextStyle(fontSize: 10),
+                    style: Theme.of(context).textTheme.labelSmall,
                   ),
                 );
               },

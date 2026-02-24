@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.business.analytics.business_analytics_chat"
-    compileSdk = 36
+    compileSdk = 35
     buildToolsVersion = "35.0.0"
     // ndkVersion = "27.0.12077973"
 

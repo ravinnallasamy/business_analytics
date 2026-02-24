@@ -84,9 +84,8 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                         textCapitalization: TextCapitalization.sentences,
                         decoration: InputDecoration(
                           hintText: 'Ask anything...',
-                          hintStyle: TextStyle(
+                          hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontSize: 16,
                           ),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
@@ -97,11 +96,7 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                             horizontal: 0,
                           ),
                         ),
-                        style: TextStyle(
-                          fontSize: 16,
-                          height: 1.4,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
                     ),
                   ),
