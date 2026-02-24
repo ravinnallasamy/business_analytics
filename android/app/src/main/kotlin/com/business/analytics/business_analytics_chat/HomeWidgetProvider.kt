@@ -5,11 +5,10 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.widget.RemoteViews
-import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
-import es.antonborri.home_widget.HomeWidgetProvider
+import es.antonborri.home_widget.HomeWidgetProvider as BaseHomeWidgetProvider
 
-class HomeWidgetProvider : HomeWidgetProvider() {
+class HomeWidgetProvider : BaseHomeWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, widgetData: SharedPreferences) {
         appWidgetIds.forEach { widgetId ->
@@ -24,7 +23,7 @@ class HomeWidgetProvider : HomeWidgetProvider() {
                 val intent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     MainActivity::class.java,
-                    Uri.parse("homeWidget://chat/last") // Custom scheme to be handled
+                    Uri.parse("homeWidget://app/chat") // Routes to /chat
                 )
                 setOnClickPendingIntent(R.id.widget_message, intent)
                 setOnClickPendingIntent(R.id.widget_title, intent)

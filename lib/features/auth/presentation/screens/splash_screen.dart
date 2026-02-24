@@ -12,15 +12,15 @@ class SplashScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // App logo or icon
-            Icon(
-              Icons.analytics_outlined,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
+            Image.asset(
+              'assets/orient-logo.jpg',
+              width: 150,
+              height: 150,
             ),
             const SizedBox(height: 24),
             // App name
             Text(
-              'Business Analytics',
+              'Orient Analytics',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.primary,

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.business.analytics.business_analytics_chat"
-    compileSdk = 35
+    compileSdk = 36
     buildToolsVersion = "35.0.0"
     // ndkVersion = "27.0.12077973"
 
@@ -18,6 +18,8 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
+        allWarningsAsErrors = false
+        freeCompilerArgs += listOf("-Xlint:-deprecation")
     }
 
     defaultConfig {

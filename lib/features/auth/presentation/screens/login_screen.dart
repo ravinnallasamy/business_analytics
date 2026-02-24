@@ -60,6 +60,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: UIConstants.paddingMedium),
+                      child: Image.asset(
+                        'assets/orient-logo.jpg',
+                        height: 80,
+                      ),
+                    ),
+                  ),
                   Text(
                     'Welcome Back',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(

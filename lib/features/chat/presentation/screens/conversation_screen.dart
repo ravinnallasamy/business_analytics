@@ -107,7 +107,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
-          activeConversation?.title ?? 'Business Analytics',
+          activeConversation?.title ?? 'Orient Analytics',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w500,
             fontSize: 18,

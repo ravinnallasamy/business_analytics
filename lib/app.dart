@@ -9,7 +9,7 @@ class BusinessAnalyticsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'Business Analytics Chat',
+      title: 'Orient Analytics',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,

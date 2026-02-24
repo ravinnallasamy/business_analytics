@@ -97,6 +97,15 @@ class _SidebarState extends ConsumerState<Sidebar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Branding ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+            child: Image.asset(
+              'assets/orient-logo.jpg',
+              height: 40,
+              alignment: Alignment.centerLeft,
+            ),
+          ),
           // ── New Chat Button & Refresh ──
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
