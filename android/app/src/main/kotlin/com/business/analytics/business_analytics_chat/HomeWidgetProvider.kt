@@ -17,15 +17,16 @@ class HomeWidgetProvider : BaseHomeWidgetProvider() {
                 val message = widgetData.getString("message", "No recent insights")
                 
                 setTextViewText(R.id.widget_title, title)
-                setTextViewText(R.id.widget_message, message)
+                setTextViewText(R.id.widget_message_1, message)
+                setTextViewText(R.id.widget_message_2, message)
 
                 // Pending Intent to launch the app
                 val intent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     MainActivity::class.java,
-                    Uri.parse("homeWidget://app/chat") // Routes to /chat
+                    Uri.parse("homeWidget://chat/new") // Routes to new chat
                 )
-                setOnClickPendingIntent(R.id.widget_message, intent)
+                setOnClickPendingIntent(R.id.widget_flipper, intent)
                 setOnClickPendingIntent(R.id.widget_title, intent)
             }
             appWidgetManager.updateAppWidget(widgetId, views)

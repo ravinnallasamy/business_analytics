@@ -213,6 +213,26 @@ class ChatNotifier extends Notifier<ChatState> {
 
   /// Select a conversation and load its history
   Future<void> selectConversation(String conversationId) async {
+    // 0. Handle 'last' pseudo-ID
+    if (conversationId == 'last') {
+      if (state.conversations.isEmpty) {
+        // Wait for initial load if we launched directly into 'last'
+        await loadConversations();
+      }
+      
+      if (state.conversations.isNotEmpty) {
+        // Find most recently updated
+        final sorted = List<Conversation>.from(state.conversations)
+          ..sort((a, b) => b.lastUpdated.compareTo(a.lastUpdated));
+        conversationId = sorted.first.id;
+        debugPrint('🪄 ChatNotifier: Resolved "last" to $conversationId');
+      } else {
+        debugPrint('⚠️ ChatNotifier: Could not resolve "last", no conversations. Creating new chat.');
+        createNewConversation();
+        return; // Early return because createNewConversation assigns activeConversationId.
+      }
+    }
+
     // 1. Update selection immediately
     state = state.copyWith(
         activeConversationId: conversationId,

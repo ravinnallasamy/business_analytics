@@ -15,13 +15,42 @@
         android:textStyle="bold"
         android:textColor="#000000" />
 
-    <TextView
-        android:id="@+id/widget_message"
+    <ViewFlipper
+        android:id="@+id/widget_flipper"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_marginTop="8dp"
-        android:text="No recent insights"
-        android:textSize="14sp"
-        android:textColor="#666666" />
+        android:inAnimation="@anim/widget_slide_in_bottom"
+        android:outAnimation="@anim/widget_slide_out_top"
+        android:flipInterval="5000"
+        android:autoStart="true">
+
+        <TextView
+            android:id="@+id/widget_message_1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:text="No recent insights"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="14sp"
+            android:autoSizeMaxTextSize="32sp"
+            android:autoSizeStepGranularity="2sp" />
+
+        <TextView
+            android:id="@+id/widget_message_2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:text="No recent insights"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="14sp"
+            android:autoSizeMaxTextSize="32sp"
+            android:autoSizeStepGranularity="2sp" />
+
+    </ViewFlipper>
 
 </LinearLayout>

@@ -1,8 +1,24 @@
 import 'package:flutter/material.dart';
 
+import 'package:business_analytics_chat/features/home_widget/home_widget_service.dart';
+
 /// Splash screen shown while checking authentication status
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize HomeWidget listener
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      HomeWidgetService.init();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

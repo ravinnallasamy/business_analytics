@@ -28,16 +28,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (widget.conversationId == 'last') {
-        // Fetch last conversation
-        // For now, no-op or select most recent
-        debugPrint("📱 ConversationScreen: Opening last conversation requested");
+         // Let Notifier handle 'last' pseudo-ID
+         ref.read(chatProvider.notifier).selectConversation('last');
       } else if (widget.conversationId != null) {
-        debugPrint('📱 ConversationScreen: Selecting conversation ${widget.conversationId}');
-        // Wait for frame to prevent build-phase updates
-        Future.delayed(Duration.zero, () {
-           if (!mounted) return;
-           ref.read(chatProvider.notifier).selectConversation(widget.conversationId!);
-        });
+         ref.read(chatProvider.notifier).selectConversation(widget.conversationId!);
       } else {
         // New conversation state
         debugPrint('📱 ConversationScreen: Starting new conversation');

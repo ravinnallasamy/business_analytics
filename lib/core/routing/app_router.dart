@@ -9,14 +9,14 @@ import 'package:business_analytics_chat/features/chat/presentation/screens/conve
 import 'package:business_analytics_chat/features/chat/presentation/widgets/scaffold_with_sidebar.dart';
 import 'package:business_analytics_chat/features/home_widget/home_widget_placeholder.dart';
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final routerNotifier = RouterNotifier(ref);
 
   return GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/login', // Start at login, redirect will send authenticated users to /chat
     refreshListenable: routerNotifier,
     // But Notifier stream is available
@@ -63,6 +63,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         }
       }
       
+      // Deep Link Fallback (Android Native passing full URI)
+      if (currentPath.contains('chat/new') || currentPath.contains('chat/last')) {
+         debugPrint('🚧 Router: Intercepting Deep Link $currentPath -> /chat');
+         return '/chat'; // Force a new chat session instead of last
+      }
+      
       debugPrint('🚧 Router: No redirect needed for path: $currentPath');
       return null;
     },
@@ -78,9 +84,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ConversationScreen(key: ValueKey('new'), conversationId: null),
             routes: [
               GoRoute(
+                path: 'last',
+                builder: (context, state) => const ConversationScreen(key: ValueKey('last'), conversationId: 'last'),
+              ),
+              GoRoute(
                 path: ':id',
                 builder: (context, state) {
                   final id = state.pathParameters['id'];
+                  if (id == 'last') {
+                      return const ConversationScreen(key: ValueKey('last'), conversationId: 'last');
+                  }
                   return ConversationScreen(key: ValueKey(id), conversationId: id);
                 },
               ),
