@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:business_analytics_chat/features/auth/state/auth_notifier.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
-import 'package:business_analytics_chat/core/constants/ui_constants.dart';
+import 'package:business_analytics_chat/core/theme/app_colors.dart';
 
 class Sidebar extends ConsumerStatefulWidget {
   const Sidebar({super.key});
@@ -57,7 +57,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final sorted = List<Conversation>.from(conversations)..sort((a, b) => b.lastUpdated.compareTo(a.lastUpdated));
 
     for (var conv in sorted) {
-      // Filter by search query
       if (_searchQuery.isNotEmpty && !conv.title.toLowerCase().contains(_searchQuery.toLowerCase())) {
         continue;
       }
@@ -74,7 +73,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
       } else if (date.isAfter(thirtyDaysAgo)) {
         grouped.putIfAbsent('Previous 30 Days', () => []).add(conv);
       } else {
-        // Optional: Older
          grouped.putIfAbsent('Older', () => []).add(conv);
       }
     }
@@ -87,21 +85,18 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final activeId = chatState.activeConversationId;
     final groupedConversations = _groupConversations(chatState.conversations);
     
-    // Define group order
     final groups = ['Today', 'Yesterday', 'Previous 7 Days', 'Previous 30 Days', 'Older']
         .where((g) => groupedConversations.containsKey(g) && groupedConversations[g]!.isNotEmpty)
         .toList();
 
     return Container(
-      color: const Color(0xFF1E1F20), // Dark background like Gemini
+      color: AppColors.sidebarBackground,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Branding ──
           const Padding(
             padding: EdgeInsets.fromLTRB(24, 20, 24, 0),
-            // The constraint box is replaced by an empty sized box to maintain height 
-            // if needed, or we rely on the 40 padding. Let's just give it the 40 height.
             child: SizedBox(height: 40),
           ),
           // ── New Chat Button & Refresh ──
@@ -121,19 +116,22 @@ class _SidebarState extends ConsumerState<Sidebar> {
                         context.go('/chat');
                       },
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF28292A), // Dark grey button
-                        foregroundColor: const Color(0xFFE3E3E3), // Text color
+                        backgroundColor: AppColors.accentGreen.withOpacity(0.1),
+                        foregroundColor: AppColors.accentGreen,
                         elevation: 0,
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          side: const BorderSide(color: AppColors.accentGreen, width: 1),
+                        ),
                       ),
-                      icon: const Icon(Icons.add, size: 20, color: Color(0xFFE3E3E3)),
+                      icon: const Icon(Icons.add, size: 20, color: AppColors.accentGreen),
                       label: Text(
                         'New chat', 
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFFE3E3E3),
+                          color: AppColors.accentGreen,
                         ),
                       ),
                     ),
@@ -144,11 +142,11 @@ class _SidebarState extends ConsumerState<Sidebar> {
                   height: 44,
                   width: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF28292A),
+                    color: AppColors.textOnDark.withOpacity(0.05),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFFE3E3E3)),
+                    icon: const Icon(Icons.refresh_rounded, size: 20, color: AppColors.textOnDark),
                     tooltip: 'Refresh conversations',
                     onPressed: () {
                       ref.read(chatProvider.notifier).loadConversations();
@@ -160,23 +158,30 @@ class _SidebarState extends ConsumerState<Sidebar> {
           ),
 
            // ── Search Field ──
-           // Only show if there are conversations
            if (chatState.conversations.isNotEmpty)
              Padding(
                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                child: TextField(
                  controller: _searchController,
                  onChanged: (val) => setState(() => _searchQuery = val),
-                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
+                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textOnDark),
                  decoration: InputDecoration(
                    hintText: 'Search chats',
-                   hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
-                   prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey[500]),
+                   hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textOnDark.withOpacity(0.5)),
+                   prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textOnDark.withOpacity(0.5)),
                    filled: true,
-                   fillColor: const Color(0xFF28292A),
+                   fillColor: AppColors.textOnDark.withOpacity(0.05),
                    border: OutlineInputBorder(
                      borderRadius: BorderRadius.circular(24),
                      borderSide: BorderSide.none,
+                   ),
+                   enabledBorder: OutlineInputBorder(
+                     borderRadius: BorderRadius.circular(24),
+                     borderSide: BorderSide.none,
+                   ),
+                   focusedBorder: OutlineInputBorder(
+                     borderRadius: BorderRadius.circular(24),
+                     borderSide: const BorderSide(color: AppColors.accentGreen, width: 1),
                    ),
                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                    isDense: true,
@@ -202,10 +207,11 @@ class _SidebarState extends ConsumerState<Sidebar> {
                                 Padding(
                                   padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
                                   child: Text(
-                                    group,
+                                    group.toUpperCase(),
                                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: const Color(0xFF8E9196),
+                                      color: AppColors.textOnDark.withOpacity(0.4),
                                       fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
                                     ),
                                   ),
                                 ),
@@ -223,14 +229,14 @@ class _SidebarState extends ConsumerState<Sidebar> {
           // ── User Profile ──
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: Color(0xFF2D2E30))), // Divider
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: AppColors.textOnDark.withOpacity(0.1))),
             ),
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: const Color(0xFF444746),
+                  backgroundColor: AppColors.accentGreen,
                   child: Text(
                     _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -247,7 +253,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                       Text(
                         _userName,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFFE3E3E3),
+                          color: AppColors.textOnDark,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
@@ -256,7 +262,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                       Text(
                         _userRole,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFF8E9196),
+                          color: AppColors.textOnDark.withOpacity(0.5),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -265,29 +271,29 @@ class _SidebarState extends ConsumerState<Sidebar> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFF8E9196)),
+                  icon: Icon(Icons.logout_rounded, size: 18, color: AppColors.textOnDark.withOpacity(0.5)),
                   onPressed: () {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        backgroundColor: const Color(0xFF28292A),
-                        title: const Text('Logout', style: TextStyle(color: Color(0xFFE3E3E3))),
-                        content: const Text(
+                        backgroundColor: AppColors.sidebarBackground,
+                        title: const Text('Logout', style: TextStyle(color: AppColors.textOnDark)),
+                        content: Text(
                           'Are you sure you want to logout?',
-                          style: TextStyle(color: Color(0xFFC4C7C5)),
+                          style: TextStyle(color: AppColors.textOnDark.withOpacity(0.7)),
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Cancel', style: TextStyle(color: Color(0xFFA8C7FA))),
+                            child: Text('Cancel', style: TextStyle(color: AppColors.textOnDark.withOpacity(0.5))),
                           ),
                           TextButton(
                             onPressed: () async {
-                              Navigator.of(context).pop(); // Close dialog first to avoid context issues
+                              Navigator.of(context).pop();
                               await ref.read(authProvider.notifier).logout();
                               if (context.mounted) context.go('/login');
                             },
-                            child: const Text('Logout', style: TextStyle(color: Color(0xFFFFB4AB))),
+                            child: const Text('Logout', style: TextStyle(color: Colors.redAccent)),
                           ),
                         ],
                       ),
@@ -308,11 +314,11 @@ class _SidebarState extends ConsumerState<Sidebar> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-            Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey[700]),
+            Icon(Icons.chat_bubble_outline, size: 48, color: AppColors.textOnDark.withOpacity(0.2)),
             const SizedBox(height: 16),
             Text(
               'No conversations yet',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[500]),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textOnDark.withOpacity(0.4)),
             ),
         ],
       ),
@@ -321,54 +327,58 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
   Widget _buildConversationItem(Conversation conv, bool isActive, BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 2),
+      margin: const EdgeInsets.only(bottom: 2, left: 8, right: 8),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF004A77) : Colors.transparent, // Active blue
-        borderRadius: BorderRadius.circular(20), // Pill shape
+        color: isActive ? AppColors.accentGreen.withOpacity(0.15) : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        border: isActive ? Border.all(color: AppColors.accentGreen.withOpacity(0.3), width: 1) : null,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          hoverColor: isActive ? null : const Color(0xFF28292A),
+          hoverColor: AppColors.textOnDark.withOpacity(0.05),
           onTap: () {
             Scaffold.of(context).closeDrawer();
             context.go('/chat/${conv.id}');
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
-                // No icon for items, just text per screenshot style (or maybe small icon?)
-                // Screenshot shows just text.
+                Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  size: 16,
+                  color: isActive ? AppColors.accentGreen : AppColors.textOnDark.withOpacity(0.5),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     conv.title,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isActive ? const Color(0xFFD3E3FD) : const Color(0xFFE3E3E3),
+                      color: isActive ? AppColors.textOnDark : AppColors.textOnDark.withOpacity(0.8),
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                // Show options menu only on hover ideally, but for mobile/touch always show ?
-                // For now, let's just put the dots menu
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      Icons.more_vert, 
-                      size: 16, 
-                      color: isActive ? const Color(0xFFD3E3FD) : const Color(0xFF8E9196)
+                if (isActive)
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.more_vert, 
+                        size: 16, 
+                        color: AppColors.accentGreen,
+                      ),
+                      onPressed: () {
+                         // Show menu options (Rename, Delete)
+                      },
                     ),
-                    onPressed: () {
-                       // Show menu options (Rename, Delete)
-                    },
                   ),
-                ),
               ],
             ),
           ),
@@ -383,7 +393,7 @@ class _SidebarSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Colors.white.withOpacity(0.05);
+    final color = AppColors.textOnDark.withOpacity(0.05);
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: 8,
@@ -398,3 +408,4 @@ class _SidebarSkeleton extends StatelessWidget {
     );
   }
 }
+

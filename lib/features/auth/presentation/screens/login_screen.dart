@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/features/auth/state/auth_notifier.dart';
+import 'package:business_analytics_chat/core/theme/app_colors.dart';
 import 'package:business_analytics_chat/core/constants/ui_constants.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -37,6 +38,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.primaryBackground,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(UIConstants.paddingLarge),
@@ -46,9 +48,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(UIConstants.borderRadiusLarge),
+              border: Border.all(color: AppColors.borderGray),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),

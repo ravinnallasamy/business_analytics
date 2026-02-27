@@ -4,6 +4,7 @@ import 'package:business_analytics_chat/features/chat/state/chat_state.dart';
 import 'package:business_analytics_chat/features/chat/presentation/widgets/message_view.dart';
 import 'package:business_analytics_chat/features/chat/presentation/widgets/chat_input_bar.dart';
 import 'package:business_analytics_chat/features/chat/presentation/widgets/sidebar.dart';
+import 'package:business_analytics_chat/core/theme/app_colors.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'dart:math';
@@ -92,97 +93,68 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final isLoading = (activeConversation == null && !isNewChat) || isMismatch || isFetchingHistory;
 
     return Scaffold(
-      extendBodyBehindAppBar: false,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/orient-logo.jpg',
-                height: 24,
-                width: 24,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  activeConversation?.title ?? 'Orient Analytics',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-        centerTitle: true,
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: const Icon(Icons.menu_rounded), 
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          }
-        ),
-      ),
+      extendBodyBehindAppBar: true,
       drawer: const Drawer(child: Sidebar()),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: isLoading
-          ? const _MessageSkeletonList()
-          : Stack(
-              key: ValueKey(activeConversation?.id ?? 'new'),
-              children: [
-                // Content Layer
-                Positioned.fill(
-                  child: activeConversation != null
-                    ? ListView.builder(
-                        controller: _scrollController,
-                        reverse: true,
-                        physics: const AlwaysScrollableScrollPhysics(), 
-                        padding: const EdgeInsets.only(
-                          top: 16,
-                          bottom: 100,
-                          left: 0,
-                          right: 0,
+      body: SafeArea(
+        bottom: false,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: isLoading
+            ? const _MessageSkeletonList()
+            : Stack(
+                key: ValueKey(activeConversation?.id ?? 'new'),
+                children: [
+                  // Content Layer
+                  Positioned.fill(
+                    child: activeConversation != null
+                      ? ListView.builder(
+                          controller: _scrollController,
+                          reverse: true,
+                          physics: const AlwaysScrollableScrollPhysics(), 
+                          padding: const EdgeInsets.only(
+                            top: 60, // Space for the floating menu button
+                            bottom: 100,
+                            left: 0,
+                            right: 0,
+                          ),
+                          itemCount: activeConversation.messages.length,
+                          itemBuilder: (context, index) {
+                            final reversedIndex = activeConversation.messages.length - 1 - index;
+                            final message = activeConversation.messages[reversedIndex];
+                            return MessageView(message: message);
+                          },
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.only(top: 60, bottom: 100),
+                          child: _NewChatWelcome(onSuggestionTap: (question) {
+                            ref.read(chatProvider.notifier).sendMessage(question);
+                          }),
                         ),
-                        itemCount: activeConversation.messages.length,
-                        itemBuilder: (context, index) {
-                          final reversedIndex = activeConversation.messages.length - 1 - index;
-                          final message = activeConversation.messages[reversedIndex];
-                          return Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 800),
-                              child: MessageView(message: message),
-                            ),
-                          );
-                        },
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.only(bottom: 100),
-                        child: _NewChatWelcome(onSuggestionTap: (question) {
-                          ref.read(chatProvider.notifier).sendMessage(question);
-                        }),
+                  ),
+                  
+                  // Floating Menu Button for Sidebar
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Builder(
+                      builder: (context) => IconButton(
+                        icon: const Icon(Icons.menu_rounded),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Theme.of(context).scaffoldBackgroundColor.withAlpha(200),
+                        ),
                       ),
-                ),
-                
-                // Floating Input Layer
-                const Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ChatInputBar(isProminent: false),
-                ),
-              ],
-            ),
+                    ),
+                  ),
+                  
+                  // Floating Input Layer
+                  const Align(
+                    alignment: Alignment.bottomCenter,
+                    child: ChatInputBar(isProminent: false),
+                  ),
+                ],
+              ),
+        ),
       ),
     );
   }
@@ -202,14 +174,13 @@ class _MessageSkeletonList extends StatelessWidget {
         ),
         Positioned.fill(
           child: Container(
-            color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5),
-            child: const Center(
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                ),
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: Center(
+              child: Image.asset(
+                'assets/loader.gif',
+                width: 200, // Adjust size as needed for best GIF rendering
+                height: 200,
+                fit: BoxFit.contain,
               ),
             ),
           ),
@@ -240,9 +211,9 @@ class _MessageSkeleton extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Container(width: double.infinity, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
+          Container(width: MediaQuery.of(context).size.width * 0.9, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
           const SizedBox(height: 8),
-          Container(width: MediaQuery.of(context).size.width * 0.7, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
+          Container(width: MediaQuery.of(context).size.width * 0.8, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
         ],
       ),
     );
@@ -265,32 +236,24 @@ class _NewChatWelcomeState extends State<_NewChatWelcome> {
   static const _suggestions = [
     _SuggestionItem(
       icon: Icons.bar_chart_rounded,
-      iconBg: Color(0xFFE8F0FE), // Light Blue
-      iconColor: Color(0xFF1967D2), // Google Blue
       title: 'Top-Selling Products',
       description: 'Analyze sales performance for FY 2026',
       question: 'Show me the top selling products for the current financial year',
     ),
     _SuggestionItem(
       icon: Icons.show_chart_rounded,
-      iconBg: Color(0xFFFCE8E6), // Light Red
-      iconColor: Color(0xFFC5221F), // Google Red
       title: 'Revenue Trends',
       description: 'Compare monthly revenue vs last year',
       question: 'Give me a total revenue summary for the current financial year',
     ),
     _SuggestionItem(
       icon: Icons.pie_chart_rounded,
-      iconBg: Color(0xFFE6F4EA), // Light Green
-      iconColor: Color(0xFF137333), // Google Green
       title: 'Customer Insights',
       description: 'Identify top 20 customers by value',
       question: 'Who are the top 20 customers by business in the current financial year?',
     ),
     _SuggestionItem(
       icon: Icons.trending_up_rounded,
-      iconBg: Color(0xFFFEF7E0), // Light Yellow
-      iconColor: Color(0xFFEA8600), // Google Yellow
       title: 'Growth Analysis',
       description: 'Review sales trends over 6 months',
       question: 'Show me revenue and sales trends for the past 6 months',
@@ -323,7 +286,7 @@ class _NewChatWelcomeState extends State<_NewChatWelcome> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
-    
+
     // Gemini Greeting Gradient
     final gradient = LinearGradient(
       colors: [
@@ -332,11 +295,11 @@ class _NewChatWelcomeState extends State<_NewChatWelcome> {
       ],
     );
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -346,7 +309,8 @@ class _NewChatWelcomeState extends State<_NewChatWelcome> {
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                   letterSpacing: -1.0,
-                ).copyWith(foreground: Paint()..shader = gradient.createShader(const Rect.fromLTWH(0, 0, 200, 70))),
+                  color: AppColors.accentGreen,
+                ),
               ),
               Text(
                 'How can I help you today?',
@@ -354,14 +318,14 @@ class _NewChatWelcomeState extends State<_NewChatWelcome> {
                   fontWeight: FontWeight.w600,
                   height: 1.1,
                   letterSpacing: -1.0,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2), // Faded look
+                  color: AppColors.textPrimary.withOpacity(0.2), // Faded look
                 ),
               ),
               const SizedBox(height: 48),
               
               // Suggestions Grid
               GridView.count(
-                crossAxisCount: isMobile ? 1 : 2, // 2 columns like Gemini desktop
+                crossAxisCount: isMobile ? 1 : 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 childAspectRatio: isMobile ? 3.5 : 2.5,
@@ -382,16 +346,12 @@ class _NewChatWelcomeState extends State<_NewChatWelcome> {
 
 class _SuggestionItem {
   final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
   final String title;
   final String description;
   final String question;
 
   const _SuggestionItem({
     required this.icon,
-    required this.iconBg,
-    required this.iconColor,
     required this.title,
     required this.description,
     required this.question,
@@ -413,7 +373,6 @@ class _SuggestionCardState extends State<_SuggestionCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -426,9 +385,12 @@ class _SuggestionCardState extends State<_SuggestionCard> {
           decoration: BoxDecoration(
             color: _hovered 
                 ? theme.colorScheme.surfaceContainerHighest 
-                : theme.colorScheme.surfaceContainer, // Flat grey background
-            borderRadius: BorderRadius.circular(16),
-            // No border usually, maybe subtle on hover
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _hovered ? AppColors.accentGreen.withOpacity(0.3) : AppColors.borderGray,
+              width: 1,
+            ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
@@ -442,14 +404,14 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                       widget.item.title,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onSurface,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       widget.item.description,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: AppColors.textSecondary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -461,13 +423,13 @@ class _SuggestionCardState extends State<_SuggestionCard> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white10 : Colors.white,
+                  color: AppColors.primaryBackground,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   widget.item.icon, 
                   size: 18, 
-                  color: widget.item.iconColor,
+                  color: AppColors.accentGreen,
                 ),
               ),
             ],
@@ -477,3 +439,4 @@ class _SuggestionCardState extends State<_SuggestionCard> {
     );
   }
 }
+

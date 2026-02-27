@@ -184,7 +184,7 @@ class _TableBlockState extends State<TableBlock> {
     final widths = minWidths.map((w) => w < 100.0 ? 100.0 : (w > 400.0 ? 400.0 : w)).toList();
     
     final tableColumnWidths = {
-      for (var i = 0; i < displayColumns.length; i++) i: FixedColumnWidth(widths[i]),
+      for (var i = 0; i < displayColumns.length; i++) i: FlexColumnWidth(widths[i]),
     };
     
     final totalWidth = widths.fold(0.0, (sum, w) => sum + w);
@@ -194,25 +194,27 @@ class _TableBlockState extends State<TableBlock> {
     const headerAlignment = Alignment.center;
     const dataAlignment = Alignment.centerLeft;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
-      elevation: 0,
-       color: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        border: Border(
+           top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+           bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(UIConstants.paddingMedium),
+        padding: const EdgeInsets.symmetric(vertical: UIConstants.paddingMedium),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // --- Top Bar: Title + Controls ---
-            Row(
-              children: [
-                if (title.isNotEmpty)
-                  Padding(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  if (title.isNotEmpty)
+                    Padding(
                     padding: const EdgeInsets.only(right: 16),
                     child: Text(
                       title,
@@ -233,7 +235,7 @@ class _TableBlockState extends State<TableBlock> {
                         contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+                          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(77)), // 0.3 opacity
                         ),
                         filled: true,
                         fillColor: Theme.of(context).colorScheme.surface,
@@ -262,36 +264,38 @@ class _TableBlockState extends State<TableBlock> {
                     padding: const EdgeInsets.all(8),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
             
             const SizedBox(height: 16),
 
             // --- Table Content ---
             // Scrollbar only for horizontal. Vertical scroll is PAGE level (natural).
-            Scrollbar(
-              controller: _horizontalScrollController,
-              thumbVisibility: true,
-              child: SingleChildScrollView(
-                controller: _horizontalScrollController,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(bottom: 12),
-                child: ConstrainedBox(
-                   constraints: BoxConstraints(minWidth: totalWidth),
-                   child: Table(
-                     columnWidths: tableColumnWidths,
-                     defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final tableWidth = totalWidth > constraints.maxWidth ? totalWidth : constraints.maxWidth;
+                return Scrollbar(
+                  controller: _horizontalScrollController,
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    controller: _horizontalScrollController,
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Container(
+                       width: tableWidth,
+                       child: Table(
+                         columnWidths: tableColumnWidths,
+                         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                      border: TableBorder.all(
                         color: Theme.of(context).colorScheme.outline,
                         width: 1,
-                        borderRadius: BorderRadius.circular(4),
                      ),
                      children: [
                        // Header Row
                        TableRow(
                          decoration: BoxDecoration(
-                           color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                           borderRadius: BorderRadius.circular(4),
+                           color: Theme.of(context).colorScheme.secondary, // Gold header
                          ),
                          children: List.generate(displayColumns.length, (index) {
                            return Padding(
@@ -302,7 +306,7 @@ class _TableBlockState extends State<TableBlock> {
                                  displayColumns[index],
                                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
                                    fontWeight: FontWeight.bold,
-                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                   color: Colors.white,
                                  ),
                                  textAlign: TextAlign.center,
                                  softWrap: false,
@@ -340,6 +344,8 @@ class _TableBlockState extends State<TableBlock> {
                    ),
                 ),
               ),
+            );
+            },
             ),
           ],
         ),
