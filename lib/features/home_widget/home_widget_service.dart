@@ -1,3 +1,4 @@
+import 'package:business_analytics_chat/features/home_widget/home_widget_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +29,14 @@ class HomeWidgetService {
     try {
       await HomeWidget.saveWidgetData<String>('title', title);
       await HomeWidget.saveWidgetData<String>('message', message);
+      
+      // Render the graph widget to an image so it can be shown natively
+      await HomeWidget.renderFlutterWidget(
+        HomeWidgetPlaceholder(message: message),
+        key: 'widget_image',
+        logicalSize: const Size(800, 400), // Larger resolution for better graph quality, scales down in Android ImageView
+      );
+
       await HomeWidget.updateWidget(
         name: androidWidgetName,
         iOSName: 'HomeWidget', // Must match iOS Widget output name

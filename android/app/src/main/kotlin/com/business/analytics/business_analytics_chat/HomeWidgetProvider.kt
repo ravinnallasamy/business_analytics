@@ -20,6 +20,32 @@ class HomeWidgetProvider : BaseHomeWidgetProvider() {
                 setTextViewText(R.id.widget_message_1, message)
                 setTextViewText(R.id.widget_message_2, message)
 
+                val imagePath = widgetData.getString("widget_image", null)
+                if (imagePath != null) {
+                    val file = java.io.File(imagePath)
+                    if (file.exists()) {
+                        val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                        if (bitmap != null) {
+                            setImageViewBitmap(R.id.widget_image, bitmap)
+                            setViewVisibility(R.id.widget_image, android.view.View.VISIBLE)
+                            setViewVisibility(R.id.widget_flipper, android.view.View.GONE)
+                            setViewVisibility(R.id.widget_title, android.view.View.GONE)
+                        } else {
+                            setViewVisibility(R.id.widget_image, android.view.View.GONE)
+                            setViewVisibility(R.id.widget_flipper, android.view.View.VISIBLE)
+                            setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
+                        }
+                    } else {
+                        setViewVisibility(R.id.widget_image, android.view.View.GONE)
+                        setViewVisibility(R.id.widget_flipper, android.view.View.VISIBLE)
+                        setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
+                    }
+                } else {
+                    setViewVisibility(R.id.widget_image, android.view.View.GONE)
+                    setViewVisibility(R.id.widget_flipper, android.view.View.VISIBLE)
+                    setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
+                }
+
                 // Pending Intent to launch the app
                 val intent = HomeWidgetLaunchIntent.getActivity(
                     context,
@@ -27,6 +53,7 @@ class HomeWidgetProvider : BaseHomeWidgetProvider() {
                     Uri.parse("homeWidget://chat/new") // Routes to new chat
                 )
                 setOnClickPendingIntent(R.id.widget_flipper, intent)
+                setOnClickPendingIntent(R.id.widget_image, intent)
                 setOnClickPendingIntent(R.id.widget_title, intent)
             }
             appWidgetManager.updateAppWidget(widgetId, views)

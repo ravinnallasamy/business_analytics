@@ -64,8 +64,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       
       // Deep Link Fallback (Android Native passing full URI)
-      if (currentPath.contains('chat/new') || currentPath.contains('chat/last')) {
-         debugPrint('🚧 Router: Intercepting Deep Link $currentPath -> /chat');
+      final fullUriStr = state.uri.toString();
+      if (fullUriStr.contains('chat/new') || fullUriStr.contains('chat/last')) {
+         debugPrint('🚧 Router: Intercepting Deep Link $fullUriStr -> /chat');
          return '/chat'; // Force a new chat session instead of last
       }
       
