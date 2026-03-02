@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:business_analytics_chat/core/constants/ui_constants.dart';
 
 class MetricsBlock extends StatelessWidget {
@@ -21,18 +22,22 @@ class MetricsBlock extends StatelessWidget {
         if (summary != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8.0,
-              runSpacing: 4.0,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                 Text(
-                  summary,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: MarkdownBody(
+                    data: summary,
+                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                      p: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.normal,
+                          ),
+                      strong: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
                 if (period != null) ...[
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
@@ -68,22 +73,26 @@ class MetricsBlock extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item['label']?.toString().toUpperCase() ?? '',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                    MarkdownBody(
+                      data: item['label']?.toString().toUpperCase() ?? '',
+                      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                        p: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.normal,
+                              letterSpacing: 1.2,
+                            ),
+                        strong: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      item['value']?.toString() ?? '',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                    MarkdownBody(
+                      data: item['value']?.toString() ?? '',
+                      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                        p: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.normal,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                        strong: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],

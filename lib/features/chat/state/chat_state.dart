@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart'; // For debugPrint
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:business_analytics_chat/features/home_widget/home_widget_service.dart';
 import 'package:business_analytics_chat/features/chat/data/conversation_repository.dart'; // Use ConversationRepository
 import 'package:business_analytics_chat/features/auth/state/auth_notifier.dart';
@@ -106,6 +107,9 @@ class ChatNotifier extends Notifier<ChatState> {
     // Prevent redundant rapid calls, but allow refresh
     if (state.isLoading && state.conversations.isNotEmpty) return;
 
+    const storage = FlutterSecureStorage();
+    final weeklySalesId = await storage.read(key: 'weekly_sales_conversation_id');
+
     // 1. Stale-While-Revalidate: Try Cache First (Instant)
     try {
       final cached = await _repository.getCachedConversations();
@@ -114,7 +118,7 @@ class ChatNotifier extends Notifier<ChatState> {
           final id = data['conversation_id'] ?? data['id'] ?? data['_id'] ?? '';
           return Conversation(
             id: id,
-            title: data['title'] ?? 'New Conversation',
+            title: id == weeklySalesId ? 'Weekly Sales Summary' : (data['title'] ?? 'New Conversation'),
             lastUpdated: DateTime.parse(data['updated_at'] ?? DateTime.now().toIso8601String()),
             messages: [], // Message history not in list cache
           );
@@ -145,7 +149,7 @@ class ChatNotifier extends Notifier<ChatState> {
 
         return Conversation(
           id: id,
-          title: data['title'] ?? 'New Conversation',
+          title: id == weeklySalesId ? 'Weekly Sales Summary' : (data['title'] ?? 'New Conversation'),
           lastUpdated: DateTime.parse(data['updated_at'] ?? DateTime.now().toIso8601String()),
           messages: existingMessages, 
         );
@@ -608,6 +612,88 @@ class ChatNotifier extends Notifier<ChatState> {
          conversations: [newConv, ...state.conversations],
          activeConversationId: newId,
        );
+    }
+  }
+
+  /// Rename a conversation and update local state
+  Future<void> renameConversation(String conversationId, String newTitle) async {
+    try {
+      // Call API
+      await _repository.renameConversation(conversationId, newTitle);
+      
+      // Update local state immediately
+      final updatedConversations = state.conversations.map((c) {
+        if (c.id == conversationId) {
+          return Conversation(
+            id: c.id,
+            title: newTitle,
+            lastUpdated: c.lastUpdated,
+            messages: c.messages,
+          );
+        }
+        return c;
+      }).toList();
+      
+      state = state.copyWith(conversations: updatedConversations);
+      debugPrint('✅ ChatNotifier: Renamed conversation $conversationId to $newTitle');
+    } catch (e) {
+      debugPrint('❌ ChatNotifier: Failed to rename conversation: $e');
+      state = state.copyWith(error: 'Failed to rename conversation');
+    }
+  }
+
+  /// Delete a single conversation and update local state
+  Future<void> deleteConversation(String conversationId) async {
+    try {
+      // Call API
+      await _repository.deleteConversation(conversationId);
+      
+      // Update local state immediately
+      final updatedConversations = state.conversations.where((c) => c.id != conversationId).toList();
+      
+      String? newActiveId = state.activeConversationId;
+      if (state.activeConversationId == conversationId) {
+        newActiveId = null; // Clear if active was deleted
+      }
+      
+      state = state.copyWith(
+        conversations: updatedConversations,
+        activeConversationId: newActiveId,
+      );
+      debugPrint('✅ ChatNotifier: Deleted conversation $conversationId');
+    } catch (e) {
+      debugPrint('❌ ChatNotifier: Failed to delete conversation: $e');
+      state = state.copyWith(error: 'Failed to delete conversation');
+    }
+  }
+
+  /// Delete all conversations and reset state
+  Future<void> deleteAllConversations() async {
+    try {
+      state = state.copyWith(isLoading: true);
+      
+      // Call API
+      await _repository.deleteAllConversations();
+      
+      // Reset state
+      state = state.copyWith(
+        conversations: [],
+        activeConversationId: null,
+        isLoading: false,
+        error: null,
+      );
+      
+      // Also clear local weekly sales ID if any
+      const storage = FlutterSecureStorage();
+      await storage.delete(key: 'weekly_sales_conversation_id');
+      
+      debugPrint('✅ ChatNotifier: Deleted all conversations');
+    } catch (e) {
+      debugPrint('❌ ChatNotifier: Failed to delete all conversations: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to delete all conversations',
+      );
     }
   }
 }

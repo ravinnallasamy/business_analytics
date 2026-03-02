@@ -178,8 +178,8 @@ class _MessageSkeletonList extends StatelessWidget {
             child: Center(
               child: Image.asset(
                 'assets/loader.gif',
-                width: 200, // Adjust size as needed for best GIF rendering
-                height: 200,
+                width: 100, // Reduced from 200 for a cleaner look
+                height: 100,
                 fit: BoxFit.contain,
               ),
             ),
@@ -382,14 +382,23 @@ class _SuggestionCardState extends State<_SuggestionCard> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          transform: Matrix4.identity()..scale(_hovered ? 1.02 : 1.0),
           decoration: BoxDecoration(
             color: _hovered 
-                ? theme.colorScheme.surfaceContainerHighest 
+                ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.8) 
                 : Colors.white,
             borderRadius: BorderRadius.circular(12),
+            boxShadow: _hovered ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ] : [],
             border: Border.all(
-              color: _hovered ? AppColors.accentGreen.withOpacity(0.3) : AppColors.borderGray,
-              width: 1,
+              color: _hovered ? AppColors.accentGreen : AppColors.borderGray,
+              width: _hovered ? 1.5 : 1.0,
             ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -400,18 +409,19 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      widget.item.title,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 200),
+                      style: theme.textTheme.bodyMedium!.copyWith(
+                        fontWeight: _hovered ? FontWeight.w900 : FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
+                      child: Text(widget.item.title),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       widget.item.description,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: _hovered ? AppColors.textPrimary.withOpacity(0.7) : AppColors.textSecondary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -420,16 +430,17 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                 ),
               ),
               const SizedBox(width: 16),
-              Container(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBackground,
+                  color: _hovered ? AppColors.accentGreen : AppColors.primaryBackground,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   widget.item.icon, 
                   size: 18, 
-                  color: AppColors.accentGreen,
+                  color: _hovered ? Colors.white : AppColors.accentGreen,
                 ),
               ),
             ],

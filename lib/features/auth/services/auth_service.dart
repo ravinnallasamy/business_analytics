@@ -8,6 +8,7 @@ class AuthService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final Dio _dio = Dio();
   static const String _tokenKey = 'auth_token';
+  static const String _emailKey = 'user_email';
 
   AuthService() {
     _dio.options.baseUrl = ApiConfig.authBaseUrl;
@@ -118,5 +119,25 @@ class AuthService {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Extract email from JWT and save it
+  Future<void> extractAndSaveEmail(String token) async {
+    try {
+      final decodedToken = getTokenData(token);
+      if (decodedToken != null) {
+        final email = decodedToken['email'];
+        if (email != null) {
+          await _storage.write(key: _emailKey, value: email.toString());
+        }
+      }
+    } catch (e) {
+      // Ignore errors in extraction
+    }
+  }
+
+  /// Get stored user email
+  Future<String?> getUserEmail() async {
+    return await _storage.read(key: _emailKey);
   }
 }

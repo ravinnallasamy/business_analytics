@@ -157,35 +157,60 @@ class _SidebarState extends ConsumerState<Sidebar> {
             ),
           ),
 
-           // ── Search Field ──
+           // ── Search Field & Delete All ──
            if (chatState.conversations.isNotEmpty)
              Padding(
                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-               child: TextField(
-                 controller: _searchController,
-                 onChanged: (val) => setState(() => _searchQuery = val),
-                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textOnDark),
-                 decoration: InputDecoration(
-                   hintText: 'Search chats',
-                   hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textOnDark.withOpacity(0.5)),
-                   prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textOnDark.withOpacity(0.5)),
-                   filled: true,
-                   fillColor: AppColors.textOnDark.withOpacity(0.05),
-                   border: OutlineInputBorder(
-                     borderRadius: BorderRadius.circular(24),
-                     borderSide: BorderSide.none,
+               child: Column(
+                 children: [
+                   TextField(
+                     controller: _searchController,
+                     onChanged: (val) => setState(() => _searchQuery = val),
+                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textOnDark),
+                     decoration: InputDecoration(
+                       hintText: 'Search chats',
+                       hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textOnDark.withOpacity(0.5)),
+                       prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textOnDark.withOpacity(0.5)),
+                       filled: true,
+                       fillColor: AppColors.textOnDark.withOpacity(0.05),
+                       border: OutlineInputBorder(
+                         borderRadius: BorderRadius.circular(24),
+                         borderSide: BorderSide.none,
+                       ),
+                       enabledBorder: OutlineInputBorder(
+                         borderRadius: BorderRadius.circular(24),
+                         borderSide: BorderSide.none,
+                       ),
+                       focusedBorder: OutlineInputBorder(
+                         borderRadius: BorderRadius.circular(24),
+                         borderSide: const BorderSide(color: AppColors.accentGreen, width: 1),
+                       ),
+                       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                       isDense: true,
+                     ),
                    ),
-                   enabledBorder: OutlineInputBorder(
-                     borderRadius: BorderRadius.circular(24),
-                     borderSide: BorderSide.none,
+                   const SizedBox(height: 8),
+                   Padding(
+                     padding: const EdgeInsets.symmetric(horizontal: 4),
+                     child: TextButton.icon(
+                       onPressed: () => _showDeleteAllConfirmation(context),
+                       style: TextButton.styleFrom(
+                         foregroundColor: Colors.redAccent.withOpacity(0.8),
+                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                         minimumSize: const Size(double.infinity, 32),
+                         alignment: Alignment.centerLeft,
+                         shape: RoundedRectangleBorder(
+                           borderRadius: BorderRadius.circular(20),
+                         ),
+                       ),
+                       icon: const Icon(Icons.delete_sweep_rounded, size: 18),
+                       label: const Text(
+                         'Delete All Conversations',
+                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                       ),
+                     ),
                    ),
-                   focusedBorder: OutlineInputBorder(
-                     borderRadius: BorderRadius.circular(24),
-                     borderSide: const BorderSide(color: AppColors.accentGreen, width: 1),
-                   ),
-                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                   isDense: true,
-                 ),
+                 ],
                ),
              ),
 
@@ -363,26 +388,168 @@ class _SidebarState extends ConsumerState<Sidebar> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (isActive)
                   SizedBox(
                     width: 24,
                     height: 24,
-                    child: IconButton(
+                    child: PopupMenuButton<String>(
                       padding: EdgeInsets.zero,
                       icon: const Icon(
                         Icons.more_vert, 
                         size: 16, 
                         color: AppColors.accentGreen,
                       ),
-                      onPressed: () {
-                         // Show menu options (Rename, Delete)
+                      color: AppColors.sidebarBackground,
+                      onSelected: (value) {
+                        if (value == 'rename') {
+                          _showRenameDialog(context, conv);
+                        } else if (value == 'delete') {
+                          _showDeleteConfirmation(context, conv);
+                        }
                       },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'rename',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, size: 18, color: AppColors.textOnDark),
+                              SizedBox(width: 12),
+                              Text('Rename', style: TextStyle(color: AppColors.textOnDark)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                              SizedBox(width: 12),
+                              Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // --- Helper Dialogs ---
+
+  void _showRenameDialog(BuildContext context, Conversation conv) {
+    final TextEditingController controller = TextEditingController(text: conv.title);
+    // Select all text so user can immediately type over it or edit it
+    controller.selection = TextSelection(baseOffset: 0, extentOffset: conv.title.length);
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: AppColors.sidebarBackground,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Rename Conversation', style: TextStyle(color: AppColors.textOnDark)),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            style: const TextStyle(color: Colors.black),
+            onChanged: (_) => setState(() {}), // Refresh to show/hide clear button
+            decoration: InputDecoration(
+              hintText: 'Enter new title',
+              hintStyle: TextStyle(color: Colors.black.withOpacity(0.5)),
+              suffixIcon: controller.text.isNotEmpty 
+                ? IconButton(
+                    icon: const Icon(Icons.cancel, color: AppColors.inactive, size: 20),
+                    onPressed: () {
+                      controller.clear();
+                      setState(() {});
+                    },
+                  ) 
+                : null,
+              enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.accentGreen)),
+              focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.accentGreen, width: 2)),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: AppColors.textOnDark.withOpacity(0.6))),
+            ),
+            TextButton(
+              onPressed: () {
+                final newTitle = controller.text.trim();
+                if (newTitle.isNotEmpty && newTitle != conv.title) {
+                  ref.read(chatProvider.notifier).renameConversation(conv.id, newTitle);
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('Save', style: TextStyle(color: AppColors.accentGreen, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, Conversation conv) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.sidebarBackground,
+        title: const Text('Delete Conversation', style: TextStyle(color: AppColors.textOnDark)),
+        content: const Text(
+          'Are you sure you want to delete this conversation?',
+          style: TextStyle(color: AppColors.textOnDark),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textOnDark.withOpacity(0.6))),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(chatProvider.notifier).deleteConversation(conv.id);
+              if (ref.read(chatProvider).activeConversationId == null && context.mounted) {
+                context.go('/chat');
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAllConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.sidebarBackground,
+        title: const Text('Delete All Conversations', style: TextStyle(color: Colors.redAccent)),
+        content: const Text(
+          'This will permanently delete all conversations. Continue?',
+          style: TextStyle(color: AppColors.textOnDark),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textOnDark.withOpacity(0.6))),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(chatProvider.notifier).deleteAllConversations();
+              if (context.mounted) {
+                context.go('/chat');
+              }
+            },
+            child: const Text('Delete All', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

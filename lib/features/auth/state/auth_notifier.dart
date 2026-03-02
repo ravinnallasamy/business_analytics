@@ -1,6 +1,7 @@
 
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:business_analytics_chat/features/auth/services/auth_service.dart';
 import 'package:business_analytics_chat/core/services/cache_service.dart';
 import 'package:business_analytics_chat/features/home_widget/home_widget_service.dart';
@@ -80,6 +81,7 @@ class AuthNotifier extends Notifier<AuthState> {
     }
     
     // Token is valid, go to chat
+    await _authService.extractAndSaveEmail(token);
     state = state.copyWith(isAuthenticated: true, isLoading: false);
     // Ensure widget knows we are logged in (sync check)
     await HomeWidgetService.setLoginState(true);
@@ -90,6 +92,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final token = await _authService.login(email, password);
       await _authService.saveToken(token);
+      await _authService.extractAndSaveEmail(token);
       
       // Update widget state immediately
       await HomeWidgetService.setLoginState(true);
@@ -109,6 +112,11 @@ class AuthNotifier extends Notifier<AuthState> {
     
     // 2. Clear token and internal state
     await _authService.deleteToken();
+
+    // 3. Clear weekly sales conversation ID persistence
+    final storage = FlutterSecureStorage();
+    await storage.delete(key: 'weekly_sales_conversation_id');
+
     try {
       // Clear all cache on logout to be safe
       await CacheService().clearAll();

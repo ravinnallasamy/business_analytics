@@ -266,6 +266,118 @@ class ConversationRepository {
     }
   }
 
+  /// Rename a conversation
+  Future<void> renameConversation(String conversationId, String newTitle) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null || token.isEmpty) throw Exception('No authentication token found');
+
+      final response = await _dio.patch(
+        ApiConfig.renameConversationEndpoint(conversationId),
+        data: {'title': newTitle},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to rename conversation: ${response.statusCode}');
+      }
+      
+      // Update cache after rename
+      final userId = await _getUserId(token);
+      if (userId != null) {
+        final cached = await getCachedConversations();
+        if (cached != null) {
+          final updated = cached.map((c) {
+            final id = c['conversation_id'] ?? c['id'] ?? c['_id'];
+            if (id == conversationId) {
+              return {...c, 'title': newTitle};
+            }
+            return c;
+          }).toList();
+          await _cache.set(_conversationsKey(userId), updated, const Duration(minutes: 10));
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ ConversationRepository: Rename failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete a single conversation
+  Future<void> deleteConversation(String conversationId) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null || token.isEmpty) throw Exception('No authentication token found');
+
+      final response = await _dio.delete(
+        ApiConfig.deleteConversationEndpoint(conversationId),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception('Failed to delete conversation: ${response.statusCode}');
+      }
+
+      // Update cache after delete
+      final userId = await _getUserId(token);
+      if (userId != null) {
+        // Remove from conversation list cache
+        final cached = await getCachedConversations();
+        if (cached != null) {
+          final updated = cached.where((c) {
+            final id = c['conversation_id'] ?? c['id'] ?? c['_id'];
+            return id != conversationId;
+          }).toList();
+          await _cache.set(_conversationsKey(userId), updated, const Duration(minutes: 10));
+        }
+        // Remove history cache
+        await _cache.remove(_historyKey(userId, conversationId));
+      }
+    } catch (e) {
+      debugPrint('❌ ConversationRepository: Delete failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete all conversations
+  Future<void> deleteAllConversations() async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null || token.isEmpty) throw Exception('No authentication token found');
+
+      final response = await _dio.delete(
+        ApiConfig.deleteAllConversationsEndpoint,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception('Failed to delete all conversations: ${response.statusCode}');
+      }
+
+      // Clear cache after delete all
+      final userId = await _getUserId(token);
+      if (userId != null) {
+        await _cache.clearAll(); // Safety first: clear everything
+      }
+    } catch (e) {
+      debugPrint('❌ ConversationRepository: Delete all failed: $e');
+      rethrow;
+    }
+  }
+
 
   /// Parse messages from chat history response
   /// 

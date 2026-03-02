@@ -25,45 +25,69 @@ class WidgetDataService {
       }
 
       // 2. Configure Dio
-      // BaseUrl not set here, we use full path in request
-      
       _dio.options.headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       };
       
-      // 3. Make Request
+      // 3. Get existing Weekly Sales Conversation ID
+      String? weeklySalesId = await _storage.read(key: 'weekly_sales_conversation_id');
+      debugPrint("WidgetDataService: Reusing Weekly Sales ID: $weeklySalesId");
+      
+      // 4. Make Request
       // Question: Asking for this week's sales summary
       const question = "What's about the sales of this week? Give me a very short text summary.";
       
-      final response = await _dio.post(
-        ApiConfig.sendQuestionEndpoint,
-        data: {
-          "question": question,
-          "conversation_id": null,
-          "enable_cache": true,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final summary = _parseSummaryFromResponse(data is Map ? Map<String, dynamic>.from(data) : {});
-        
-        await HomeWidgetService.updateWidget(
-          title: "Past Week Sales",
-          message: summary,
+      try {
+        final response = await _dio.post(
+          ApiConfig.sendQuestionEndpoint,
+          data: {
+            "question": question,
+            "conversation_id": weeklySalesId,
+            "enable_cache": true,
+          },
         );
-        debugPrint("WidgetDataService: Widget updated with: $summary");
-        return true;
-      } else if (response.statusCode == 401 || response.statusCode == 403) {
-        debugPrint("WidgetDataService: Auth error ${response.statusCode}. Updating state to logged out.");
-        await HomeWidgetService.setLoginState(false);
-        return false;
-      } else {
-        debugPrint("WidgetDataService: API error ${response.statusCode}");
-        return false;
-      }
 
+        if (response.statusCode == 200) {
+          final data = response.data;
+          
+          // 4.1 Store the conversation ID for future reuse if we just created one
+          final newConvId = data['conversation_id'];
+          if (newConvId != null && newConvId != weeklySalesId) {
+            await _storage.write(key: 'weekly_sales_conversation_id', value: newConvId);
+            debugPrint("WidgetDataService: Saved new or updated Weekly Sales ID: $newConvId");
+          }
+
+          final summary = _parseSummaryFromResponse(data is Map ? Map<String, dynamic>.from(data) : {});
+          
+          await HomeWidgetService.updateWidget(
+            title: "Past Week Sales",
+            message: summary,
+          );
+          debugPrint("WidgetDataService: Widget updated with: $summary");
+          return true;
+        } else if (response.statusCode == 401 || response.statusCode == 403) {
+          debugPrint("WidgetDataService: Auth error ${response.statusCode}. Updating state to logged out.");
+          await HomeWidgetService.setLoginState(false);
+          return false;
+        } else if (response.statusCode == 404 && weeklySalesId != null) {
+          // Stored ID is invalid/expired
+          debugPrint("WidgetDataService: Stored conversation ID $weeklySalesId is invalid. Clearing.");
+          await _storage.delete(key: 'weekly_sales_conversation_id');
+          // Retry once without ID to create a new one
+          return fetchAndUpdateWidget();
+        } else {
+          debugPrint("WidgetDataService: API error ${response.statusCode}");
+          return false;
+        }
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 404 && weeklySalesId != null) {
+          debugPrint("WidgetDataService: Stored conversation ID $weeklySalesId is invalid (404). Clearing.");
+          await _storage.delete(key: 'weekly_sales_conversation_id');
+          return fetchAndUpdateWidget();
+        }
+        rethrow;
+      }
     } catch (e) {
       debugPrint("WidgetDataService: Error: $e. Keeping cached data.");
       return false;

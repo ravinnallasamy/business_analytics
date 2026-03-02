@@ -71,6 +71,21 @@ class ApiConfig {
       '$_chatbotBase/api/conversations/$conversationId/messages';
 
   // ============================================================================
+  // API 5: RENAME / DELETE CONVERSATION
+  // ============================================================================
+  /// PATCH /api/conversations/:id
+  static String renameConversationEndpoint(String conversationId) =>
+      '$_chatbotBase/api/conversations/$conversationId';
+
+  /// DELETE /api/conversations/:id
+  static String deleteConversationEndpoint(String conversationId) =>
+      '$_chatbotBase/api/conversations/$conversationId';
+
+  /// DELETE /api/conversations
+  static String get deleteAllConversationsEndpoint =>
+      '$_chatbotBase/api/conversations';
+
+  // ============================================================================
   // TIMEOUTS
   // ============================================================================
   static const Duration connectTimeout = Duration(seconds: 15);

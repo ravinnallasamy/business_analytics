@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:business_analytics_chat/features/chat/state/chat_state.dart';
 import 'package:business_analytics_chat/features/chat/presentation/blocks/block_renderer.dart';
 import 'package:business_analytics_chat/core/constants/ui_constants.dart';
 import 'package:business_analytics_chat/core/theme/app_colors.dart';
+import 'package:business_analytics_chat/features/chat/presentation/widgets/email_draft_sheet.dart';
 
 class MessageView extends StatelessWidget {
   final ChatMessage message;
@@ -58,11 +60,14 @@ class MessageView extends StatelessWidget {
         ),
         border: Border.all(color: AppColors.borderGray),
       ),
-      child: Text(
-        message.content,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          height: 1.5,
-          color: AppColors.textPrimary,
+      child: MarkdownBody(
+        data: message.content,
+        styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+          p: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            height: 1.5,
+            color: AppColors.textPrimary,
+          ),
+          strong: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -86,14 +91,42 @@ class MessageView extends StatelessWidget {
           
           return Padding(
             padding: EdgeInsets.only(
-              bottom: isLast ? 0 : 12,
+              bottom: isLast ? 8 : 12, // Reduced bottom padding if it's the last block to leave room for the button
               left: isTable ? 0 : 16,
               right: isTable ? 0 : 16,
             ),
             child: BlockRenderer(block: block),
           );
-        }).toList(),
+        }).toList()
+          ..add(
+            Padding(
+              padding: const EdgeInsets.only(left: 12, top: 4),
+              child: IconButton(
+                onPressed: () => _showEmailDraft(context),
+                icon: Icon(
+                  Icons.mail_outline_rounded,
+                  size: 20,
+                  color: Colors.grey[600],
+                ),
+                tooltip: 'Draft Email',
+                style: IconButton.styleFrom(
+                  padding: const EdgeInsets.all(8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ),
+          ),
       ),
+    );
+  }
+
+  void _showEmailDraft(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => EmailDraftSheet(message: message),
     );
   }
 }
@@ -107,8 +140,8 @@ class _LoaderMessage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Image.asset(
         'assets/loader.gif',
-        width: 120, // Slightly smaller for inline use
-        height: 60,
+        width: 50, // Significant size reduction for inline loader
+        height: 25,
         fit: BoxFit.contain,
       ),
     );
