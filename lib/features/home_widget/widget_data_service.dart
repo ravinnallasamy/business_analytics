@@ -56,27 +56,16 @@ class WidgetDataService {
         debugPrint("WidgetDataService: Widget updated with: $summary");
         return true;
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        debugPrint("WidgetDataService: Auth error ${response.statusCode}");
-        HomeWidgetService.updateWidget(
-            title: "Past Week Sales",
-            message: "Session expired. Please login."
-        );
+        debugPrint("WidgetDataService: Auth error ${response.statusCode}. Updating state to logged out.");
+        await HomeWidgetService.setLoginState(false);
         return false;
       } else {
         debugPrint("WidgetDataService: API error ${response.statusCode}");
-        HomeWidgetService.updateWidget(
-            title: "Past Week Sales",
-            message: "Unable to update data."
-        );
         return false;
       }
 
     } catch (e) {
-      debugPrint("WidgetDataService: Error: $e");
-      HomeWidgetService.updateWidget(
-          title: "Business Analytics",
-          message: "Data refresh failed: $e"
-      );
+      debugPrint("WidgetDataService: Error: $e. Keeping cached data.");
       return false;
     }
   }
@@ -84,49 +73,31 @@ class WidgetDataService {
   static String _parseSummaryFromResponse(Map<String, dynamic> json) {
     try {
       if (json['answer'] != null && json['answer'] is Map) {
-          final answer = json['answer'];
+        final answer = json['answer'];
+        final String summary = answer['summary']?.toString() ?? "";
+        final List blocks = answer['blocks'] is List ? answer['blocks'] : [];
 
-          // 1. Aggressively search for actual numerical metrics first
-          // because the 'summary' is often just a generic greeting ("Hello Shankar...")
-          if (answer['blocks'] != null && answer['blocks'] is List) {
-            final List blocks = answer['blocks'];
-            List<String> metricStrings = [];
-            
-            for (var block in blocks) {
-               if (block is Map && block['type'] == 'metric' && block['metrics'] is List) {
-                 final List metrics = block['metrics'];
-                 for (var metric in metrics) {
-                   if (metric is Map && metric['label'] != null && metric['value'] != null) {
-                     metricStrings.add("${metric['label']}: ${metric['value']}");
-                   }
-                 }
-               }
-            }
-            // If we found any actual data numbers, return them joined!
-            if (metricStrings.isNotEmpty) {
-               return metricStrings.join('\n');
-            }
-            
-            // 2. If no metrics, look for a text block that might contain the data
-            for (var block in blocks) {
-               if (block is Map && block['type'] == 'text' && block['content'] != null) {
-                 final content = block['content'].toString();
-                 // Ignore if it's just a greeting repetition
-                 if (!content.toLowerCase().contains("here's the sales summary")) {
-                    return content;
-                 }
-               }
-            }
+        // Combine summary and all text blocks to search for the value
+        String combinedText = summary;
+        for (var block in blocks) {
+          if (block is Map && block['type'] == 'text' && block['content'] != null) {
+            combinedText += " " + block['content'].toString();
           }
+        }
 
-          // 3. Fallback to summary ONLY if we didn't find any real blocks
-          if (answer['summary'] != null && answer['summary'].toString().isNotEmpty) {
-             return answer['summary'].toString();
-          }
+        // Regex to match [number][optional decimals] + optional space + Lacs
+        // We look for the first occurrence as the source of truth
+        final RegExp regex = RegExp(r'(\d+(?:\.\d+)?)\s*Lacs', caseSensitive: false);
+        final match = regex.firstMatch(combinedText);
+
+        if (match != null) {
+          return match.group(0)!; // Returns "82.06 Lacs"
+        }
       }
-      return "Fetching latest insights...";
+      return "---"; // Return "---" instead of garbage if parsing fails
     } catch (e) {
-      return "Data format error.";
+      debugPrint("WidgetDataService: Parsing error: $e");
+      return "---";
     }
   }
 }

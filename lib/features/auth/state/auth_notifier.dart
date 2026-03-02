@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/features/auth/services/auth_service.dart';
 import 'package:business_analytics_chat/core/services/cache_service.dart';
+import 'package:business_analytics_chat/features/home_widget/home_widget_service.dart';
 import 'package:business_analytics_chat/features/chat/state/chat_state.dart';
 
 class AuthState {
@@ -72,12 +73,16 @@ class AuthNotifier extends Notifier<AuthState> {
     if (_authService.isTokenExpired(token)) {
       // Token expired, delete it and go to login
       await _authService.deleteToken();
+      // Ensure widget also reflects this
+      await HomeWidgetService.setLoginState(false);
       state = state.copyWith(isAuthenticated: false, isLoading: false);
       return;
     }
     
     // Token is valid, go to chat
     state = state.copyWith(isAuthenticated: true, isLoading: false);
+    // Ensure widget knows we are logged in (sync check)
+    await HomeWidgetService.setLoginState(true);
   }
 
   Future<void> login(String email, String password) async {
@@ -85,7 +90,12 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final token = await _authService.login(email, password);
       await _authService.saveToken(token);
+      
+      // Update widget state immediately
+      await HomeWidgetService.setLoginState(true);
+      
       state = state.copyWith(isAuthenticated: true, isLoading: false);
+      
       // Prefetch conversations once authenticated
       ref.read(chatProvider.notifier).loadConversations();
     } catch (e) {
@@ -94,11 +104,16 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    // 1. Clear widget state IMMEDIATELY on logout
+    await HomeWidgetService.setLoginState(false);
+    
+    // 2. Clear token and internal state
     await _authService.deleteToken();
     try {
       // Clear all cache on logout to be safe
       await CacheService().clearAll();
     } catch (_) {}
+    
     state = state.copyWith(isAuthenticated: false);
   }
 }

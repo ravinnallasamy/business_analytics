@@ -8,81 +8,56 @@ import 'package:business_analytics_chat/core/theme/app_colors.dart';
 class HomeWidgetPlaceholder extends StatelessWidget {
   final String message;
 
-  const HomeWidgetPlaceholder({super.key, this.message = 'No data available'});
+  const HomeWidgetPlaceholder({super.key, this.message = '---'});
 
   @override
   Widget build(BuildContext context) {
-    // Extract the numerical value if possible to make it huge, but fallback to the raw message
-    String displayValue = message.replaceAll('**', '');
-    
-    // Simple heuristic to extract something like "₹66.12 Lacs" if the message is multi-line
-    final lines = displayValue.split('\n');
-    for (var line in lines) {
-      if (line.contains('₹') || line.contains('\$')) {
-        // Try to get just the value part if there's a colon
-        final parts = line.split(':');
-        if (parts.length > 1) {
-          displayValue = parts.last.trim();
-          break;
-        } else {
-          displayValue = line.trim();
-          break;
-        }
-      }
-    }
+    // The message is now the clean extracted value (e.g., "82.06 Lacs")
+    final String displayValue = message;
 
     return Material(
       color: Colors.transparent,
       child: Container(
         width: double.infinity,
-        height: double.infinity, // Force full constraints
-        decoration: BoxDecoration(
-          color: AppColors.sidebarBackground, // Use a dark background to make the value pop
-          borderRadius: BorderRadius.circular(UIConstants.borderRadiusMedium),
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          color: Color(0xFF000000), // Strict Pure Black background
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(UIConstants.borderRadiusMedium),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // 1. Background Graph filling the whole widget
-              const Positioned.fill(
-                child: Padding(
-                  padding: EdgeInsets.only(top: 40.0), // Push graph down a bit so text is readable
-                  child: _AnimatedStockGraph(),
-                ),
-              ),
-              
-              // 2. Bright Overlay Text
-              Padding(
-                padding: const EdgeInsets.all(UIConstants.paddingMedium),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      displayValue,
-                      style: const TextStyle(
-                        fontSize: 36, // Huge font
-                        fontWeight: FontWeight.w900, // Extra bold
-                        color: Colors.white, // Very bright
-                        height: 1.1,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black54,
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. Background Graph filling the whole widget edge-to-edge
+            const Positioned.fill(
+              child: _AnimatedStockGraph(),
+            ),
+            
+            // 2. Bold, centered value (Financial Ticker Style)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Text(
+                  displayValue,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 48, // Aggressively large
+                    fontWeight: FontWeight.w900, // Extra bold
+                    color: Color(0xFFFFFFFF), // Pure white
+                    height: 1.0,
+                    letterSpacing: -1.0,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black,
+                        blurRadius: 20,
+                        offset: Offset(0, 4),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.visible, // Value is the priority
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

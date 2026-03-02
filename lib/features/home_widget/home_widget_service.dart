@@ -46,6 +46,33 @@ class HomeWidgetService {
     }
   }
 
+  /// Sets the login state for the widget to read natively.
+  static Future<void> setLoginState(bool isLoggedIn) async {
+    if (kIsWeb) return;
+    try {
+      await HomeWidget.saveWidgetData<bool>('is_logged_in', isLoggedIn);
+      
+      if (!isLoggedIn) {
+         // Clear cached data strings so native fallback is clean
+         await HomeWidget.saveWidgetData<String>('title', null);
+         await HomeWidget.saveWidgetData<String>('message', null);
+         await HomeWidget.saveWidgetData<String>('widget_image', null);
+      }
+      
+      await HomeWidget.updateWidget(
+        name: androidWidgetName,
+        iOSName: 'HomeWidget',
+      );
+      
+      if (isLoggedIn) {
+        // Trigger a fetch to get actual data immediately since they just logged in
+        WidgetDataService.fetchAndUpdateWidget();
+      }
+    } catch (e) {
+      debugPrint("Error updating widget login state: $e");
+    }
+  }
+
   /// Initialize WorkManager for background updates
   static Future<void> initBackgroundService() async {
     if (kIsWeb) return;

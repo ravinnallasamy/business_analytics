@@ -13,37 +13,36 @@ class HomeWidgetProvider : BaseHomeWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, widgetData: SharedPreferences) {
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.widget_layout).apply {
-                val title = widgetData.getString("title", "Business Analytics")
-                val message = widgetData.getString("message", "No recent insights")
+                val isLoggedIn = widgetData.getBoolean("is_logged_in", false)
                 
-                setTextViewText(R.id.widget_title, title)
-                setTextViewText(R.id.widget_message_1, message)
-                setTextViewText(R.id.widget_message_2, message)
-
-                val imagePath = widgetData.getString("widget_image", null)
-                if (imagePath != null) {
-                    val file = java.io.File(imagePath)
-                    if (file.exists()) {
-                        val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
-                        if (bitmap != null) {
-                            setImageViewBitmap(R.id.widget_image, bitmap)
-                            setViewVisibility(R.id.widget_image, android.view.View.VISIBLE)
-                            setViewVisibility(R.id.widget_flipper, android.view.View.GONE)
-                            setViewVisibility(R.id.widget_title, android.view.View.GONE)
+                if (!isLoggedIn) {
+                    // Show ONLY "Please login"
+                    setTextViewText(R.id.widget_title, "Please login")
+                    setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
+                    setViewVisibility(R.id.widget_image, android.view.View.GONE)
+                    setViewVisibility(R.id.widget_flipper, android.view.View.GONE)
+                } else {
+                    // Logged in, show cached image (value + graph)
+                    val imagePath = widgetData.getString("widget_image", null)
+                    
+                    if (imagePath != null) {
+                        val file = java.io.File(imagePath)
+                        if (file.exists()) {
+                            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                            if (bitmap != null) {
+                                setImageViewBitmap(R.id.widget_image, bitmap)
+                                setViewVisibility(R.id.widget_image, android.view.View.VISIBLE)
+                                setViewVisibility(R.id.widget_flipper, android.view.View.GONE)
+                                setViewVisibility(R.id.widget_title, android.view.View.GONE)
+                            } else {
+                                showFallback(this)
+                            }
                         } else {
-                            setViewVisibility(R.id.widget_image, android.view.View.GONE)
-                            setViewVisibility(R.id.widget_flipper, android.view.View.VISIBLE)
-                            setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
+                            showFallback(this)
                         }
                     } else {
-                        setViewVisibility(R.id.widget_image, android.view.View.GONE)
-                        setViewVisibility(R.id.widget_flipper, android.view.View.VISIBLE)
-                        setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
+                        showFallback(this)
                     }
-                } else {
-                    setViewVisibility(R.id.widget_image, android.view.View.GONE)
-                    setViewVisibility(R.id.widget_flipper, android.view.View.VISIBLE)
-                    setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
                 }
 
                 // Pending Intent to launch the app
@@ -57,6 +56,17 @@ class HomeWidgetProvider : BaseHomeWidgetProvider() {
                 setOnClickPendingIntent(R.id.widget_title, intent)
             }
             appWidgetManager.updateAppWidget(widgetId, views)
+        }
+    }
+
+    private fun showFallback(views: RemoteViews) {
+        views.apply {
+            setTextViewText(R.id.widget_message_1, "---")
+            setTextViewText(R.id.widget_message_2, "---")
+            setViewVisibility(R.id.widget_image, android.view.View.GONE)
+            setViewVisibility(R.id.widget_flipper, android.view.View.VISIBLE)
+            setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
+            setTextViewText(R.id.widget_title, "Business Analytics")
         }
     }
 }
