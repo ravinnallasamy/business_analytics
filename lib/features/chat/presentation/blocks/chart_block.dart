@@ -121,6 +121,70 @@ class ChartBlock extends StatelessWidget {
                 ),
               ),
 
+            // ── Data Table (Numerical View) ──────────────────────────────────
+            if (chartData.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowHeight: 36,
+                        dataRowMinHeight: 32,
+                        dataRowMaxHeight: 32,
+                        horizontalMargin: 12,
+                        columnSpacing: 24,
+                        headingRowColor: WidgetStateProperty.all(
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                        ),
+                        columns: [
+                          DataColumn(
+                            label: Text(
+                              xKey.toUpperCase(),
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          ...yKeys.map((key) => DataColumn(
+                                label: Text(
+                                  key.replaceAll('_', ' ').toUpperCase(),
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                numeric: true,
+                              )),
+                        ],
+                        rows: chartData.take(10).map((row) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(
+                                row[xKey]?.toString() ?? '',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              )),
+                              ...yKeys.map((key) {
+                                final val = row[key];
+                                return DataCell(Text(
+                                  val is num ? _formatY(val.toDouble()) : val.toString(),
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                ));
+                              }),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
             // ── Chart (horizontally scrollable when many data points) ──────
             SizedBox(
               height: chartH + bottomReserved + 8,
