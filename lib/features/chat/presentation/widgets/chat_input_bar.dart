@@ -40,94 +40,41 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
           ),
         ),
       ),
-      padding: EdgeInsets.fromLTRB(
-        isMobile ? 12 : 16, 
-        12, 
-        isMobile ? 12 : 16, 
-        isMobile ? 12 : 16,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: AppColors.borderGray),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 120),
-                        child: TextField(
-                          controller: _controller,
-                          onChanged: (text) => setState(() => _isComposing = text.trim().isNotEmpty),
-                          onSubmitted: _handleSubmitted,
-                          maxLines: null,
-                          minLines: 1,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'Ask anything...',
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            filled: false,
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 14,
-                              horizontal: 0,
-                            ),
-                          ),
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Send Button
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: _isComposing
-                          ? IconButton(
-                              key: const ValueKey('send'),
-                              onPressed: () => _handleSubmitted(_controller.text),
-                              icon: const Icon(Icons.arrow_upward_rounded),
-                              style: IconButton.styleFrom(
-                                backgroundColor: AppColors.accentGreen,
-                                foregroundColor: Colors.white,
-                                fixedSize: const Size(40, 40),
-                                padding: EdgeInsets.zero,
-                              ),
-                            )
-                          : IconButton(
-                              key: const ValueKey('disabled'),
-                              onPressed: null,
-                              icon: const Icon(Icons.arrow_upward_rounded),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: AppColors.textSecondary.withOpacity(0.3),
-                                fixedSize: const Size(40, 40),
-                                padding: EdgeInsets.zero,
-                              ),
-                            ),
-                    ),
-                    const SizedBox(width: 4),
-                  ],
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.borderGray),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  onChanged: (text) => setState(() => _isComposing = text.trim().isNotEmpty),
+                  onSubmitted: _handleSubmitted,
+                  maxLines: null,
+                  minLines: 1,
+                  decoration: const InputDecoration(
+                    hintText: 'Ask anything...',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
-            ),
-          ],
+              IconButton(
+                onPressed: _isComposing ? () => _handleSubmitted(_controller.text) : null,
+                icon: Icon(
+                  Icons.send_rounded,
+                  color: _isComposing ? AppColors.accentGreen : AppColors.inactive,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

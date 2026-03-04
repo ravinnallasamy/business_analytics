@@ -6,6 +6,7 @@ import 'package:business_analytics_chat/features/chat/presentation/widgets/chat_
 import 'package:business_analytics_chat/features/chat/presentation/widgets/sidebar.dart';
 import 'package:business_analytics_chat/core/theme/app_colors.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:business_analytics_chat/core/constants/ui_constants.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'dart:math';
 
@@ -52,10 +53,6 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       // Logic for changing conversation
        WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        // Reset scroll position
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(0); 
-        }
 
         if (widget.conversationId != null) {
           debugPrint('📱 ConversationScreen: Switching to conversation ${widget.conversationId}');
@@ -68,6 +65,25 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     }
   }
 
+  void _scrollToBottom({bool animate = true}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      
+      // Use maxScrollExtent for non-reversed list
+      final position = _scrollController.position.maxScrollExtent;
+      
+      if (animate) {
+        _scrollController.animateTo(
+          position,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      } else {
+        _scrollController.jumpTo(position);
+      }
+    });
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -76,27 +92,73 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
 
 
+  double _lastScrollPosition = 0;
+
   @override
   Widget build(BuildContext context) {
     debugPrint('🛠️ ConversationScreen: build called. ID: ${widget.conversationId}, Active: ${ref.watch(activeConversationProvider)?.id}');
+    
+    // Listen for conversation changes to scroll
+    ref.listen(activeConversationProvider, (previous, next) {
+      if (next != null) {
+        final prevMessages = previous?.messages ?? [];
+        final nextMessages = next.messages;
+        
+        // Case 1: Switched to a different conversation or first load
+        if (previous?.id != next.id) {
+          debugPrint('📜 Scroll: Conversation changed, scrolling to bottom');
+          _scrollToBottom(animate: false);
+        } 
+        // Case 2: New messages added to current conversation
+        else if (nextMessages.length > prevMessages.length) {
+          final lastMessage = nextMessages.last;
+          
+          // Check if any of the NEW messages are from user
+          final hasNewUserMessage = nextMessages.sublist(prevMessages.length).any((m) => m.isUser);
+          
+          if (hasNewUserMessage) {
+            debugPrint('📜 Scroll: User message added, scrolling to bottom');
+            _scrollToBottom();
+          } 
+          // If it's a bot message that just finished loading
+          else if (!lastMessage.isLoading && lastMessage.isUser == false) {
+             debugPrint('📜 Scroll: Bot response finished, showing top of response');
+             
+             if (_scrollController.hasClients) {
+                // The current maxScrollExtent is exactly where the new message starts 
+                // because it hasn't been rendered yet in this frame.
+                final topOfNewMessage = _scrollController.position.maxScrollExtent;
+                
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  // Scroll to the start of the new message
+                  _scrollController.animateTo(
+                    topOfNewMessage,
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOutCubic,
+                  );
+                });
+             }
+          }
+        }
+      }
+    });
+
     final chatState = ref.watch(chatProvider);
     final activeConversation = ref.watch(activeConversationProvider);
-    // Removed isDesktop check to show drawer always
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
     final isNewChat = widget.conversationId == null;
 
-
-
-    // Instead of blocking with a full-screen spinner, we show a skeleton UI
-    // while the active conversation is being updated or loaded from API.
     final isMismatch = !isNewChat && activeConversation?.id != widget.conversationId;
     final isFetchingHistory = !isNewChat && chatState.isLoading && (activeConversation == null || activeConversation.messages.isEmpty);
     final isLoading = (activeConversation == null && !isNewChat) || isMismatch || isFetchingHistory;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      drawer: const Drawer(child: Sidebar()),
       body: SafeArea(
         bottom: false,
+        top: false, // Handle top padding manually for cleaner floating UI
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: isLoading
@@ -104,50 +166,51 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             : Stack(
                 key: ValueKey(activeConversation?.id ?? 'new'),
                 children: [
-                  // Content Layer
+                   // Content Layer
                   Positioned.fill(
                     child: activeConversation != null
                       ? ListView.builder(
                           controller: _scrollController,
-                          reverse: true,
+                          reverse: false, // Changed to false for easier "top of response" control
                           physics: const AlwaysScrollableScrollPhysics(), 
-                          padding: const EdgeInsets.only(
-                            top: 60, // Space for the floating menu button
-                            bottom: 100,
-                            left: 0,
-                            right: 0,
+                          padding: EdgeInsets.only(
+                            top: isDesktop ? 24 : 80,
+                            bottom: 150, // Added more bottom padding for the input bar
+                            left: 16,
+                            right: 16,
                           ),
                           itemCount: activeConversation.messages.length,
                           itemBuilder: (context, index) {
-                            final reversedIndex = activeConversation.messages.length - 1 - index;
-                            final message = activeConversation.messages[reversedIndex];
+                            final message = activeConversation.messages[index];
                             return MessageView(message: message);
                           },
                         )
                       : Padding(
-                          padding: const EdgeInsets.only(top: 60, bottom: 100),
+                          padding: EdgeInsets.only(top: isDesktop ? 24 : 80, bottom: 120),
                           child: _NewChatWelcome(onSuggestionTap: (question) {
                             ref.read(chatProvider.notifier).sendMessage(question);
                           }),
                         ),
                   ),
                   
-                  // Floating Menu Button for Sidebar
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Builder(
-                      builder: (context) => IconButton(
-                        icon: const Icon(Icons.menu_rounded),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Theme.of(context).scaffoldBackgroundColor.withAlpha(200),
+                  // Mobile Menu Button
+                  if (!isDesktop)
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + 10,
+                      left: 16,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.menu, color: AppColors.accentGreen),
+                          onPressed: () => Scaffold.of(context).openDrawer(),
                         ),
                       ),
                     ),
-                  ),
                   
-                  // Floating Input Layer
+                  // Input Bar
                   const Align(
                     alignment: Alignment.bottomCenter,
                     child: ChatInputBar(isProminent: false),

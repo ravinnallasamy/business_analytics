@@ -8,6 +8,7 @@ import 'package:business_analytics_chat/features/auth/presentation/screens/splas
 import 'package:business_analytics_chat/features/chat/presentation/screens/conversation_screen.dart';
 import 'package:business_analytics_chat/features/chat/presentation/widgets/scaffold_with_sidebar.dart';
 import 'package:business_analytics_chat/features/home_widget/home_widget_placeholder.dart';
+import 'package:business_analytics_chat/modules/scheduler/screens/scheduler_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -99,6 +100,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: '/scheduler',
+            builder: (context, state) => const SchedulerScreen(),
           ),
         ],
       ),

@@ -21,43 +21,49 @@ class MetricsBlock extends StatelessWidget {
       children: [
         if (summary != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: MarkdownBody(
-                    data: summary,
-                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                      p: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.normal,
-                          ),
-                      strong: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                MarkdownBody(
+                  data: summary,
+                  styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                    p: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                    strong: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                if (period != null) ...[
-                  const SizedBox(width: 8),
+                if (period != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(4),
+                      color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        width: 1,
+                      ),
                     ),
                     child: Text(
                       period,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSecondaryContainer,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ],
               ],
             ),
           ),
         Wrap(
           spacing: UIConstants.paddingMedium,
           runSpacing: UIConstants.paddingMedium,
+          alignment: WrapAlignment.start,
+          crossAxisAlignment: WrapCrossAlignment.start,
           children: metrics.map((item) {
             return Card(
               elevation: 0,

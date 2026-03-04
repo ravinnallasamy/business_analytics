@@ -5,6 +5,7 @@ import 'package:business_analytics_chat/core/constants/ui_constants.dart';
 import 'package:csv/csv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:business_analytics_chat/core/theme/app_colors.dart';
 import 'package:open_filex/open_filex.dart';
 
 class TableBlock extends StatefulWidget {
@@ -64,7 +65,6 @@ class _TableBlockState extends State<TableBlock> {
       String csv = const ListToCsvConverter().convert(csvData);
 
       if (kIsWeb) {
-        // Web export handling would go here (e.g. anchor download)
         debugPrint('CSV Export Content:\n$csv');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Export functionality is limited on Web demo')),
@@ -131,6 +131,19 @@ class _TableBlockState extends State<TableBlock> {
     );
   }
 
+  Widget _buildHeaderIcon(BuildContext context, IconData icon, String tooltip, VoidCallback onPressed) {
+    return IconButton(
+      icon: Icon(icon, size: 20),
+      tooltip: tooltip,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        padding: const EdgeInsets.all(8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = widget.data['title'] as String? ?? '';
@@ -138,15 +151,11 @@ class _TableBlockState extends State<TableBlock> {
 
     if (_allColumns.isEmpty) return const SizedBox.shrink();
 
-    // 1. Filter Columns
     final displayColumns = _allColumns.where((c) => _visibleColumns.contains(c)).toList();
     
-    // 2. Filter Rows (Search + Column Mapping)
     final List<List<dynamic>> displayRows = [];
     for (var row in rawRows) {
       if (row is List) {
-        // Search filter: check if ANY visible column cell contains query
-        // This is efficient enough for small datasets (<1000 rows)
         bool matches = _searchQuery.isEmpty;
         if (!matches) {
           for (var item in row) {
@@ -158,8 +167,6 @@ class _TableBlockState extends State<TableBlock> {
         }
 
         if (matches) {
-           // Map row to visible columns only
-           // Assuming row indices match _allColumns indices
            final List<dynamic> filteredRow = [];
            for (int i = 0; i < _allColumns.length; i++) {
              if (_visibleColumns.contains(_allColumns[i])) {
@@ -171,7 +178,6 @@ class _TableBlockState extends State<TableBlock> {
       }
     }
 
-    // 3. Dynamic Column Widths
     final List<double> minWidths = displayColumns.map((c) => (c.length * 11.0) + 40.0).toList();
     for (var row in displayRows) {
       for (int i = 0; i < displayColumns.length; i++) {
@@ -189,8 +195,6 @@ class _TableBlockState extends State<TableBlock> {
     
     final totalWidth = widths.fold(0.0, (sum, w) => sum + w);
 
-    // 4. Alignments
-    // Headers are centered, Data is left-aligned as requested
     const headerAlignment = Alignment.center;
     const dataAlignment = Alignment.centerLeft;
 
@@ -211,67 +215,92 @@ class _TableBlockState extends State<TableBlock> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  if (title.isNotEmpty)
-                    Padding(
-                    padding: const EdgeInsets.only(right: 16),
-                    child: Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+              child: Builder(
+                builder: (context) {
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final isCompact = screenWidth < 500;
+                  
+                  Widget headerTitle = title.isNotEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            title,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
                           ),
-                    ),
-                  ),
-                Expanded(
-                  child: SizedBox(
-                    height: 40,
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: 'Search...',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(77)), // 0.3 opacity
+                        )
+                      : const SizedBox.shrink();
+
+                  Widget searchField = Expanded(
+                    flex: isCompact ? 0 : 1,
+                    child: SizedBox(
+                      height: 40,
+                      width: isCompact ? double.infinity : null,
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Search data...',
+                          prefixIcon: const Icon(Icons.search, size: 18),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.1)),
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surface,
                         ),
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.surface,
+                        style: const TextStyle(fontSize: 13),
                       ),
-                      style: const TextStyle(fontSize: 14),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.visibility_outlined),
-                  tooltip: 'Columns',
-                  onPressed: _showColumnSelector,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    padding: const EdgeInsets.all(8),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.download_rounded),
-                  tooltip: 'Export CSV',
-                  onPressed: () => _exportData(displayColumns, displayRows),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    padding: const EdgeInsets.all(8),
-                  ),
-                ),
-                ],
+                  );
+
+                  Widget actions = Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildHeaderIcon(context, Icons.visibility_outlined, 'Columns', _showColumnSelector),
+                      const SizedBox(width: 8),
+                      _buildHeaderIcon(context, Icons.download_rounded, 'Export CSV', () => _exportData(displayColumns, displayRows)),
+                    ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        headerTitle,
+                        Row(
+                          children: [
+                            searchField, 
+                            const SizedBox(width: 8),
+                            actions,
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      if (title.isNotEmpty) headerTitle,
+                      const SizedBox(width: 16),
+                      searchField,
+                      const SizedBox(width: 8),
+                      actions,
+                    ],
+                  );
+                },
               ),
             ),
             
             const SizedBox(height: 16),
 
-            // --- Table Content ---
-            // Scrollbar only for horizontal. Vertical scroll is PAGE level (natural).
             LayoutBuilder(
               builder: (context, constraints) {
                 final tableWidth = totalWidth > constraints.maxWidth ? totalWidth : constraints.maxWidth;
@@ -287,65 +316,57 @@ class _TableBlockState extends State<TableBlock> {
                        child: Table(
                          columnWidths: tableColumnWidths,
                          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                     border: TableBorder.all(
-                        color: Theme.of(context).colorScheme.outline,
-                        width: 1,
-                     ),
-                     children: [
-                       // Header Row
-                       TableRow(
-                         decoration: BoxDecoration(
-                           color: Theme.of(context).colorScheme.secondary, // Gold header
+                         border: TableBorder.all(
+                            color: Theme.of(context).colorScheme.outline,
+                            width: 1,
                          ),
-                         children: List.generate(displayColumns.length, (index) {
-                           return Padding(
-                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                             child: Align(
-                               alignment: headerAlignment,
-                               child: Text(
-                                 displayColumns[index],
-                                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                   fontWeight: FontWeight.bold,
-                                   color: Colors.white,
-                                 ),
-                                 textAlign: TextAlign.center,
-                                 softWrap: false,
-                               ),
+                         children: [
+                           TableRow(
+                             decoration: BoxDecoration(
+                               color: Theme.of(context).colorScheme.secondary,
                              ),
-                           );
-                         }),
-                       ),
-                       // Data Rows
-                       ...displayRows.map((row) {
-                         return TableRow(
-                           children: List.generate(displayColumns.length, (index) {
-                             final val = index < row.length ? row[index] : '';
-                             return Padding(
-                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                               child: Align(
-                                 alignment: dataAlignment,
-                                 child: SelectableText( // Allow copying
-                                   val.toString(),
-                                   style: Theme.of(context).textTheme.bodyMedium,
-                                   maxLines: 1, // Keep rows aligned
-                                   // Note: User asked to NOT truncate important data.
-                                   // "No wrapping that breaks row alignment" implies single line.
-                                   // "Full values always visible" implies wide columns (which we did).
-                                   // If text is excessively long despite 400px width, we might need tooltip or expansion?
-                                   // But with SelectableText and wide columns, it's usually fine. 
-                                   // Let's rely on the dynamic width.
+                             children: List.generate(displayColumns.length, (index) {
+                               return Padding(
+                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                 child: Align(
+                                   alignment: headerAlignment,
+                                   child: Text(
+                                     displayColumns[index],
+                                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                       fontWeight: FontWeight.bold,
+                                       color: Colors.white,
+                                     ),
+                                     textAlign: TextAlign.center,
+                                     softWrap: false,
+                                   ),
                                  ),
-                               ),
+                               );
+                             }),
+                           ),
+                           ...displayRows.map((row) {
+                             return TableRow(
+                               children: List.generate(displayColumns.length, (index) {
+                                 final val = index < row.length ? row[index] : '';
+                                 return Padding(
+                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                   child: Align(
+                                     alignment: dataAlignment,
+                                     child: SelectableText(
+                                       val.toString(),
+                                       style: Theme.of(context).textTheme.bodyMedium,
+                                       maxLines: 1,
+                                     ),
+                                   ),
+                                 );
+                               }),
                              );
                            }),
-                         );
-                       }).toList(),
-                     ],
-                   ),
-                ),
-              ),
-            );
-            },
+                         ],
+                       ),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),

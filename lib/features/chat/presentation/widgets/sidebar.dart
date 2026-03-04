@@ -101,57 +101,31 @@ class _SidebarState extends ConsumerState<Sidebar> {
           ),
           // ── New Chat Button & Refresh ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
             child: Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: FilledButton.icon(
-                      onPressed: () {
-                        ref.read(chatProvider.notifier).clearActiveConversation();
-                        if (Scaffold.of(context).hasDrawer && Scaffold.of(context).isDrawerOpen) {
-                          Navigator.of(context).pop();
-                        }
-                        context.go('/chat');
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.accentGreen.withOpacity(0.1),
-                        foregroundColor: AppColors.accentGreen,
-                        elevation: 0,
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          side: const BorderSide(color: AppColors.accentGreen, width: 1),
-                        ),
-                      ),
-                      icon: const Icon(Icons.add, size: 20, color: AppColors.accentGreen),
-                      label: Text(
-                        'New chat', 
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.accentGreen,
-                        ),
-                      ),
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      ref.read(chatProvider.notifier).clearActiveConversation();
+                      if (Scaffold.of(context).hasDrawer && Scaffold.of(context).isDrawerOpen) {
+                        Navigator.of(context).pop();
+                      }
+                      context.go('/chat');
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accentGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('New chat'),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  height: 44,
-                  width: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.textOnDark.withOpacity(0.05),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.refresh_rounded, size: 20, color: AppColors.textOnDark),
-                    tooltip: 'Refresh conversations',
-                    onPressed: () {
-                      ref.read(chatProvider.notifier).loadConversations();
-                    },
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: AppColors.textOnDark),
+                  onPressed: () => ref.read(chatProvider.notifier).loadConversations(),
                 ),
               ],
             ),
@@ -295,6 +269,43 @@ class _SidebarState extends ConsumerState<Sidebar> {
                     ],
                   ),
                 ),
+                Builder(
+                  builder: (context) {
+                    final currentPath = GoRouterState.of(context).uri.path;
+                    final isSchedulerActive = currentPath == '/scheduler';
+                    return TextButton.icon(
+                      onPressed: () {
+                        if (Scaffold.of(context).hasDrawer && Scaffold.of(context).isDrawerOpen) {
+                          Navigator.of(context).pop();
+                        }
+                        context.go('/scheduler');
+                      },
+                      icon: Icon(
+                        Icons.calendar_month_outlined, 
+                        size: 18, 
+                        color: isSchedulerActive ? AppColors.accentGreen : AppColors.textOnDark.withOpacity(0.6)
+                      ),
+                      label: Text(
+                        'Scheduler',
+                        style: TextStyle(
+                          color: isSchedulerActive ? AppColors.accentGreen : AppColors.textOnDark.withOpacity(0.6),
+                          fontSize: 12,
+                          fontWeight: isSchedulerActive ? FontWeight.bold : FontWeight.w500,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        backgroundColor: isSchedulerActive ? AppColors.accentGreen.withOpacity(0.12) : null,
+                        overlayColor: AppColors.textOnDark.withOpacity(0.08),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: isSchedulerActive ? const BorderSide(color: AppColors.accentGreen, width: 0.5) : BorderSide.none,
+                        ),
+                      ),
+                    );
+                  }
+                ),
+                const SizedBox(width: 4),
                 IconButton(
                   icon: Icon(Icons.logout_rounded, size: 18, color: AppColors.textOnDark.withOpacity(0.5)),
                   onPressed: () {
@@ -351,88 +362,45 @@ class _SidebarState extends ConsumerState<Sidebar> {
   }
 
   Widget _buildConversationItem(Conversation conv, bool isActive, BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 2, left: 8, right: 8),
-      decoration: BoxDecoration(
-        color: isActive ? AppColors.accentGreen.withOpacity(0.15) : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        border: isActive ? Border.all(color: AppColors.accentGreen.withOpacity(0.3), width: 1) : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          hoverColor: AppColors.textOnDark.withOpacity(0.05),
-          onTap: () {
-            Scaffold.of(context).closeDrawer();
-            context.go('/chat/${conv.id}');
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  size: 16,
-                  color: isActive ? AppColors.accentGreen : AppColors.textOnDark.withOpacity(0.5),
+    return InkWell(
+      onTap: () {
+        Scaffold.of(context).closeDrawer();
+        context.go('/chat/${conv.id}');
+      },
+      child: Container(
+        color: isActive ? AppColors.accentGreen.withOpacity(0.1) : null,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.chat_bubble_outline,
+              size: 18,
+              color: isActive ? AppColors.accentGreen : AppColors.textOnDark.withOpacity(0.5),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                conv.title,
+                style: TextStyle(
+                  color: AppColors.textOnDark,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    conv.title,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isActive ? AppColors.textOnDark : AppColors.textOnDark.withOpacity(0.8),
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(
-                        Icons.more_vert, 
-                        size: 16, 
-                        color: AppColors.accentGreen,
-                      ),
-                      color: AppColors.sidebarBackground,
-                      onSelected: (value) {
-                        if (value == 'rename') {
-                          _showRenameDialog(context, conv);
-                        } else if (value == 'delete') {
-                          _showDeleteConfirmation(context, conv);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'rename',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined, size: 18, color: AppColors.textOnDark),
-                              SizedBox(width: 12),
-                              Text('Rename', style: TextStyle(color: AppColors.textOnDark)),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
-                              SizedBox(width: 12),
-                              Text('Delete', style: TextStyle(color: Colors.redAccent)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textOnDark),
+              onSelected: (value) {
+                if (value == 'rename') _showRenameDialog(context, conv);
+                if (value == 'delete') _showDeleteConfirmation(context, conv);
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                const PopupMenuItem(value: 'delete', child: Text('Delete')),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
