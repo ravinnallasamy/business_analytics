@@ -20,7 +20,7 @@ class MessageView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          Flexible(
+          Expanded(
             child: message.isUser
                 ? Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -80,20 +80,20 @@ class MessageView extends StatelessWidget {
 
     // Gemini: No bubble, pure text, breathing room
     return Container(
-      constraints: const BoxConstraints(maxWidth: double.infinity),
+      width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: message.blocks.asMap().entries.map((entry) {
           final index = entry.key;
           final block = entry.value;
           final isLast = index == message.blocks.length - 1;
-          final isTable = block.type == 'table';
+          final isFullWidth = block.type == 'table' || block.type == 'chart' || block.type == 'metrics';
           
           return Padding(
             padding: EdgeInsets.only(
-              bottom: isLast ? 8 : 12, // Reduced bottom padding if it's the last block to leave room for the button
-              left: isTable ? 0 : 16,
-              right: isTable ? 0 : 16,
+              bottom: isLast ? 8 : 12,
+              left: isFullWidth ? 0 : 16,
+              right: isFullWidth ? 0 : 16,
             ),
             child: BlockRenderer(block: block),
           );

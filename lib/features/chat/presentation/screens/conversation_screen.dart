@@ -176,8 +176,6 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                           padding: EdgeInsets.only(
                             top: isDesktop ? 24 : 80,
                             bottom: 150, // Added more bottom padding for the input bar
-                            left: 16,
-                            right: 16,
                           ),
                           itemCount: activeConversation.messages.length,
                           itemBuilder: (context, index) {
