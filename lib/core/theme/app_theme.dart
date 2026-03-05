@@ -8,34 +8,92 @@ class AppTheme {
     // Even in "dark mode" system settings, we maintain the dark sidebar / light content 
     // distinction as requested in the visual reference.
     
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final double scaleFactor = (screenWidth / 375).clamp(0.85, 1.25);
+    TextTheme buildTextTheme(Brightness brightness) {
+      final Color textColor = brightness == Brightness.light ? AppColors.textPrimary : Colors.white;
+      final Color secondaryColor = brightness == Brightness.light ? AppColors.textSecondary : Colors.white70;
 
-    TextTheme buildResponsiveTextTheme(TextTheme base) {
-      return GoogleFonts.interTextTheme(base).copyWith(
-        displayLarge: base.displayLarge?.copyWith(fontSize: (57 * scaleFactor)),
-        displayMedium: base.displayMedium?.copyWith(fontSize: (45 * scaleFactor)),
-        displaySmall: base.displaySmall?.copyWith(fontSize: (36 * scaleFactor)),
-        headlineLarge: base.headlineLarge?.copyWith(fontSize: (32 * scaleFactor)),
-        headlineMedium: base.headlineMedium?.copyWith(fontSize: (28 * scaleFactor)),
-        headlineSmall: base.headlineSmall?.copyWith(fontSize: (24 * scaleFactor)),
-        titleLarge: base.titleLarge?.copyWith(fontSize: (22 * scaleFactor), fontWeight: FontWeight.w600),
-        titleMedium: base.titleMedium?.copyWith(fontSize: (16 * scaleFactor), fontWeight: FontWeight.w600),
-        titleSmall: base.titleSmall?.copyWith(fontSize: (14 * scaleFactor), fontWeight: FontWeight.w600),
-        bodyLarge: base.bodyLarge?.copyWith(fontSize: (16 * scaleFactor), height: 1.5),
-        bodyMedium: base.bodyMedium?.copyWith(fontSize: (14 * scaleFactor), height: 1.5),
-        bodySmall: base.bodySmall?.copyWith(fontSize: (12 * scaleFactor), height: 1.4),
-        labelLarge: base.labelLarge?.copyWith(fontSize: (14 * scaleFactor), fontWeight: FontWeight.w500),
-        labelMedium: base.labelMedium?.copyWith(fontSize: (12 * scaleFactor), fontWeight: FontWeight.w500),
-        labelSmall: base.labelSmall?.copyWith(fontSize: (11 * scaleFactor), fontWeight: FontWeight.w500),
-      ).apply(
-        bodyColor: AppColors.textPrimary,
-        displayColor: AppColors.textPrimary,
+      return const TextTheme(
+        // Metric numbers (22-26 Bold)
+        displayLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 26,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
+        displayMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
+        displaySmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
+        // App titles (20 SemiBold)
+        headlineLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        // Section headings (18 SemiBold)
+        headlineMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        // Body text (15 Regular)
+        bodyLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textPrimary,
+          height: 1.5,
+        ),
+        // Table text / Labels (14 Medium for headers, but default bodyMedium for rows)
+        bodyMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textPrimary,
+          height: 1.4,
+        ),
+        // Secondary text (13 Regular)
+        bodySmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondary,
+          height: 1.4,
+        ),
+        // UI Controls / Labels (14 Medium)
+        labelLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary,
+        ),
+        labelMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textSecondary,
+        ),
+        labelSmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textSecondary,
+        ),
       );
     }
 
     final colorScheme = ColorScheme(
-      brightness: Brightness.light,
+      brightness: brightness,
       primary: AppColors.accentGreen,
       onPrimary: Colors.white,
       secondary: AppColors.accentGold,
@@ -53,9 +111,10 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'Inter',
       scaffoldBackgroundColor: AppColors.primaryBackground,
       colorScheme: colorScheme,
-      textTheme: buildResponsiveTextTheme(ThemeData.light().textTheme),
+      textTheme: buildTextTheme(brightness),
       
       // Sidebar styling via DrawerTheme
       drawerTheme: const DrawerThemeData(
@@ -64,15 +123,16 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       ),
 
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        iconTheme: const IconThemeData(color: AppColors.accentGreen),
-        titleTextStyle: GoogleFonts.inter(
+        iconTheme: IconThemeData(color: AppColors.accentGreen),
+        titleTextStyle: TextStyle(
+          fontFamily: 'Inter',
           color: AppColors.textPrimary,
-          fontSize: 18 * scaleFactor,
+          fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -88,16 +148,19 @@ class AppTheme {
       ),
 
       // Table styling
-      dataTableTheme: DataTableThemeData(
-        headingRowColor: WidgetStateProperty.all(AppColors.accentGold),
-        headingTextStyle: GoogleFonts.inter(
+      dataTableTheme: const DataTableThemeData(
+        headingRowColor: WidgetStatePropertyAll(AppColors.accentGold),
+        headingTextStyle: TextStyle(
+          fontFamily: 'Inter',
           color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 14 * scaleFactor,
+          fontWeight: FontWeight.w500, // Medium for table headers
+          fontSize: 14,
         ),
-        dataTextStyle: GoogleFonts.inter(
+        dataTextStyle: TextStyle(
+          fontFamily: 'Inter',
           color: AppColors.textPrimary,
-          fontSize: 14 * scaleFactor,
+          fontSize: 14,
+          fontWeight: FontWeight.w400, // Regular for body
         ),
         dividerThickness: 1,
         horizontalMargin: 16,
@@ -125,7 +188,12 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.accentGreen, width: 1.5),
         ),
-        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        hintStyle: const TextStyle(
+          fontFamily: 'Inter',
+          color: AppColors.textSecondary,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
       ),
 
       filledButtonTheme: FilledButtonThemeData(
@@ -134,7 +202,11 @@ class AppTheme {
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w500, // Medium for UI controls
+            fontSize: 14,
+          ),
         ),
       ),
 

@@ -114,10 +114,7 @@ class ChartBlock extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: UIConstants.paddingMedium),
                 child: Text(
                   title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ),
 
@@ -148,13 +145,19 @@ class ChartBlock extends StatelessWidget {
                           DataColumn(
                             label: Text(
                               xKey.toUpperCase(),
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.1,
+                              ),
                             ),
                           ),
                           ...yKeys.map((key) => DataColumn(
                                 label: Text(
                                   key.replaceAll('_', ' ').toUpperCase(),
-                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.1,
+                                  ),
                                 ),
                                 numeric: true,
                               )),
@@ -171,7 +174,7 @@ class ChartBlock extends StatelessWidget {
                                 return DataCell(Text(
                                   val is num ? _formatY(val.toDouble()) : val.toString(),
                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.w600, // SemiBold for numbers
                                         color: Theme.of(context).colorScheme.primary,
                                       ),
                                 ));
@@ -327,9 +330,7 @@ class ChartBlock extends StatelessWidget {
                 );
                 final label = Text(
                   text,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(context).textTheme.labelSmall,
                   textAlign: TextAlign.center,
                 );
                 return SideTitleWidget(
@@ -467,7 +468,7 @@ class ChartBlock extends StatelessWidget {
                 );
                 final label = Text(
                   text,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.labelSmall,
                   textAlign: TextAlign.center,
                 );
                 return SideTitleWidget(

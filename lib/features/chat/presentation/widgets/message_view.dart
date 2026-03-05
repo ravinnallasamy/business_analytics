@@ -78,45 +78,52 @@ class MessageView extends StatelessWidget {
       return const _LoaderMessage();
     }
 
-    // Gemini: No bubble, pure text, breathing room
+    final contentBlocks = message.blocks.where((b) => b.type != 'suggestions').toList();
+    final suggestionBlocks = message.blocks.where((b) => b.type == 'suggestions').toList();
+
     return Container(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: message.blocks.asMap().entries.map((entry) {
-          final index = entry.key;
-          final block = entry.value;
-          final isLast = index == message.blocks.length - 1;
-          final isFullWidth = block.type == 'table' || block.type == 'chart' || block.type == 'metrics';
-          
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: isLast ? 8 : 12,
-              left: isFullWidth ? 0 : 16,
-              right: isFullWidth ? 0 : 16,
-            ),
-            child: BlockRenderer(block: block),
-          );
-        }).toList()
-          ..add(
-            Padding(
-              padding: const EdgeInsets.only(left: 12, top: 4),
-              child: IconButton(
-                onPressed: () => _showEmailDraft(context),
-                icon: Icon(
-                  Icons.mail_outline_rounded,
-                  size: 20,
-                  color: Colors.grey[600],
-                ),
-                tooltip: 'Draft Email',
-                style: IconButton.styleFrom(
-                  padding: const EdgeInsets.all(8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
+        children: [
+          // Content Blocks
+          ...contentBlocks.map((block) {
+            final isFullWidth = block.type == 'table' || block.type == 'chart' || block.type == 'metrics';
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: 12,
+                left: isFullWidth ? 0 : 16,
+                right: isFullWidth ? 0 : 16,
+              ),
+              child: BlockRenderer(block: block, messageId: message.id),
+            );
+          }),
+
+          // Mail Icon (Draft Email) - Placed above suggestions
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 4, bottom: 8),
+            child: IconButton(
+              onPressed: () => _showEmailDraft(context),
+              icon: Icon(
+                Icons.mail_outline_rounded,
+                size: 20,
+                color: Colors.grey[600],
+              ),
+              tooltip: 'Draft Email',
+              style: IconButton.styleFrom(
+                padding: const EdgeInsets.all(8),
+                backgroundColor: Colors.grey[100]?.withOpacity(0.5),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
           ),
+
+          // Suggestion Blocks (Follow-up)
+          ...suggestionBlocks.map((block) {
+            return BlockRenderer(block: block, messageId: message.id);
+          }),
+        ],
       ),
     );
   }

@@ -289,41 +289,36 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   _buildLabel('From'),
-                   _buildTextField(_fromController),
-                   const SizedBox(height: 16),
-                   _buildLabel('To'),
-                   _buildTextField(_toController),
-                   const SizedBox(height: 16),
-                   _buildLabel('Subject'),
-                   _buildTextField(_subjectController),
-                   const SizedBox(height: 24),
-                   
-                   _buildLabel('Draft Body'),
-                   const SizedBox(height: 12),
-                   
-                   // Render blocks
-                   ..._buildDraftBlocks(),
-                   
-                   const SizedBox(height: 32),
-                   _buildLabel('Additional Comments (Optional)'),
-                   const SizedBox(height: 8),
-                   TextField(
-                     controller: _commentsController,
-                     maxLines: 4,
-                     style: const TextStyle(fontSize: 14),
-                     decoration: InputDecoration(
-                       hintText: 'Type your comments or notes here...',
-                       filled: true,
-                       fillColor: Colors.white,
-                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderGray)),
-                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderGray)),
-                     ),
-                   ),
-                ],
-              ),
-            ),
-          ),
+                    _buildLabel('Additional Comments (Optional)'),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _commentsController,
+                      maxLines: 4,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Type your comments or notes here...',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderGray)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderGray)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildLabel('Subject'),
+                    _buildTextField(_subjectController),
+                    const SizedBox(height: 24),
+                    
+                    _buildLabel('Draft Body'),
+                    const SizedBox(height: 12),
+                    
+                    // Render blocks
+                    ..._buildDraftBlocks(),
+                    
+                    const SizedBox(height: 16),
+                 ],
+               ),
+             ),
+           ),
           
           // Send Button
           Padding(

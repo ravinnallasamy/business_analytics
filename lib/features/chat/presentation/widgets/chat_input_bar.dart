@@ -29,50 +29,64 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
     
-    // Gemini: Input is always floating at bottom, constrained width
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.borderGray.withOpacity(0.5),
-            width: 1,
-          ),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    // Simplified Input Bar: Single clean floating box
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: SafeArea(
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borderGray),
+            borderRadius: BorderRadius.circular(28), // Pill-shaped
+            border: Border.all(color: AppColors.borderGray.withOpacity(0.8)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: TextField(
                   controller: _controller,
                   onChanged: (text) => setState(() => _isComposing = text.trim().isNotEmpty),
                   onSubmitted: _handleSubmitted,
-                  maxLines: null,
+                  maxLines: 4,
                   minLines: 1,
                   decoration: const InputDecoration(
                     hintText: 'Ask anything...',
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: _isComposing ? () => _handleSubmitted(_controller.text) : null,
-                icon: Icon(
-                  Icons.send_rounded,
-                  color: _isComposing ? AppColors.accentGreen : AppColors.inactive,
-                ),
-              ),
+              const SizedBox(width: 8),
+              _isComposing 
+                ? IconButton(
+                    onPressed: () => _handleSubmitted(_controller.text),
+                    icon: const Icon(
+                      Icons.arrow_upward_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.accentGreen,
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  )
+                : Icon(
+                    Icons.auto_awesome,
+                    size: 20,
+                    color: AppColors.accentGreen.withOpacity(0.4),
+                  ),
             ],
           ),
         ),

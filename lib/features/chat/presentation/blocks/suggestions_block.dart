@@ -6,42 +6,69 @@ import 'package:business_analytics_chat/core/theme/app_colors.dart';
 
 class SuggestionsBlock extends ConsumerWidget {
   final Map<String, dynamic> data;
+  final String? messageId;
 
-  const SuggestionsBlock({super.key, required this.data});
+  const SuggestionsBlock({super.key, required this.data, this.messageId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rawItems = data['items'] ?? data['suggestions'] ?? data['actions'];
-    final items = (rawItems as List<dynamic>? ?? []).cast<String>();
+    // Logic: Suggestions should only be visible for the very last message in the thread.
+    final activeConv = ref.watch(activeConversationProvider);
+    if (activeConv != null && messageId != null) {
+      if (activeConv.messages.isNotEmpty && activeConv.messages.last.id != messageId) {
+        return const SizedBox.shrink();
+      }
+    }
+
+    final rawItems = data['items'] ?? data['suggestions'] ?? data['actions'] ?? [];
+    final items = (rawItems as List<dynamic>).map((e) => e.toString()).toList();
 
     if (items.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: UIConstants.paddingMedium,
-        horizontal: UIConstants.paddingSmall,
-      ),
+      padding: const EdgeInsets.only(top: 12, bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              "CHOOSE AN OPTION",
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-          ),
-          Column(
-            children: items.map((item) {
-              return _SuggestionItem(
-                text: item,
-                onTap: () => ref.read(chatProvider.notifier).sendMessage(item),
+          // Perplexity-style follow-up list
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 10 * (1 - value)),
+                  child: child,
+                ),
               );
-            }).toList(),
+            },
+            child: Column(
+              children: items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final text = entry.value;
+                final isLast = index == items.length - 1;
+
+                return Column(
+                  children: [
+                    _SuggestionRow(
+                      text: text,
+                      onTap: () => ref.read(chatProvider.notifier).sendMessage(text),
+                    ),
+                    if (!isLast)
+                      const Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        indent: 16,
+                        endIndent: 16,
+                        color: Color(0xFFEEEEEE),
+                      ),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -49,89 +76,62 @@ class SuggestionsBlock extends ConsumerWidget {
   }
 }
 
-class _SuggestionItem extends StatefulWidget {
+class _SuggestionRow extends StatefulWidget {
   final String text;
   final VoidCallback onTap;
 
-  const _SuggestionItem({required this.text, required this.onTap});
+  const _SuggestionRow({required this.text, required this.onTap});
 
   @override
-  State<_SuggestionItem> createState() => _SuggestionItemState();
+  State<_SuggestionRow> createState() => _SuggestionRowState();
 }
 
-class _SuggestionItemState extends State<_SuggestionItem> {
+class _SuggestionRowState extends State<_SuggestionRow> {
   bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: InkWell(
+        onTap: widget.onTap,
+        hoverColor: Colors.transparent, // Controlled by AnimatedContainer
+        highlightColor: Colors.transparent,
+        splashColor: AppColors.accentGreen.withOpacity(0.05),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          transform: Matrix4.identity()..scale(_isHovered ? 1.01 : 1.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: _isHovered 
-                ? theme.colorScheme.surfaceContainerHighest 
-                : theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(UIConstants.borderRadiusMedium),
-            border: Border.all(
-              color: _isHovered ? AppColors.accentGreen : theme.colorScheme.outlineVariant.withOpacity(0.5),
-              width: _isHovered ? 1.5 : 1.0,
-            ),
+                ? const Color(0xFFF7F7F7) 
+                : Colors.transparent,
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: widget.onTap,
-              borderRadius: BorderRadius.circular(UIConstants.borderRadiusMedium),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: _isHovered ? AppColors.accentGreen : Colors.transparent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.auto_awesome_outlined,
-                        size: 16,
-                        color: _isHovered ? Colors.white : theme.colorScheme.primary.withOpacity(0.7),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: theme.textTheme.bodyMedium!.copyWith(
-                          color: _isHovered ? theme.colorScheme.onSurface : theme.colorScheme.onSurface.withOpacity(0.8),
-                          fontWeight: _isHovered ? FontWeight.w900 : FontWeight.w600,
-                          height: 1.3,
-                        ),
-                        child: Text(widget.text),
-                      ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 14,
-                      color: _isHovered ? AppColors.accentGreen : theme.colorScheme.outline.withOpacity(0.3),
-                    ),
-                  ],
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(
+                  Icons.subdirectory_arrow_right_rounded,
+                  size: 18,
+                  color: _isHovered ? AppColors.accentGreen : AppColors.textSecondary.withOpacity(0.6),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.text,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: _isHovered ? AppColors.textPrimary : const Color(0xFF444444),
+                    fontWeight: FontWeight.w500,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

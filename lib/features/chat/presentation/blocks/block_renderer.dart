@@ -8,8 +8,9 @@ import 'package:business_analytics_chat/features/chat/presentation/blocks/sugges
 
 class BlockRenderer extends StatelessWidget {
   final BlockData block;
+  final String? messageId;
 
-  const BlockRenderer({super.key, required this.block});
+  const BlockRenderer({super.key, required this.block, this.messageId});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +24,7 @@ class BlockRenderer extends StatelessWidget {
       case 'chart':
         return ChartBlock(data: block.data);
       case 'suggestions':
-        return SuggestionsBlock(data: block.data);
+        return SuggestionsBlock(data: block.data, messageId: messageId);
       default:
         return Text('Unknown block type: ${block.type}');
     }

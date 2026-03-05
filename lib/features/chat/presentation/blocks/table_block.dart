@@ -332,8 +332,7 @@ class _TableBlockState extends State<TableBlock> {
                                    alignment: headerAlignment,
                                    child: Text(
                                      displayColumns[index],
-                                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                       fontWeight: FontWeight.bold,
+                                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                                        color: Colors.white,
                                      ),
                                      textAlign: TextAlign.center,

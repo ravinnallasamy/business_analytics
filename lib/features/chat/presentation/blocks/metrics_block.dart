@@ -94,8 +94,7 @@ class MetricsBlock extends StatelessWidget {
                     MarkdownBody(
                       data: item['value']?.toString() ?? '',
                       styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                        p: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.normal,
+                        p: Theme.of(context).textTheme.displaySmall?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                             ),
                         strong: const TextStyle(fontWeight: FontWeight.bold),
