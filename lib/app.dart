@@ -9,7 +9,7 @@ class BusinessAnalyticsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'Orient Analytics',
+      title: 'Drishti Analytics',
       theme: AppTheme.getTheme(context, Brightness.light),
       darkTheme: AppTheme.getTheme(context, Brightness.dark),
       themeMode: ThemeMode.system,

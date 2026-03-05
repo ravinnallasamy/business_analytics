@@ -64,7 +64,7 @@ class ScheduleCard extends StatelessWidget {
                               children: [
                                 Text(
                                   schedule.title,
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                     color: AppColors.textPrimary,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -88,7 +88,7 @@ class ScheduleCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                          _buildStatusBadge(isActive),
+                          _buildStatusBadge(context, isActive),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -139,7 +139,7 @@ class ScheduleCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(bool isActive) {
+  Widget _buildStatusBadge(BuildContext context, bool isActive) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -164,10 +164,9 @@ class ScheduleCard extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             isActive ? 'Active' : 'Paused',
-            style: TextStyle(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: isActive ? AppColors.accentGreen : AppColors.inactive,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
             ),
           ),
         ],

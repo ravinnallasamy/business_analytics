@@ -7,7 +7,7 @@ import 'package:business_analytics_chat/modules/scheduler/widgets/schedule_card.
 import 'package:business_analytics_chat/modules/scheduler/widgets/schedule_empty.dart';
 import 'package:business_analytics_chat/modules/scheduler/models/schedule_model.dart';
 import 'package:go_router/go_router.dart';
-import 'package:business_analytics_chat/features/chat/state/chat_state.dart';
+import 'package:business_analytics_chat/modules/chat/state/chat_state.dart';
 
 class SchedulerScreen extends ConsumerWidget {
   const SchedulerScreen({super.key});
@@ -35,10 +35,9 @@ class SchedulerScreen extends ConsumerWidget {
                       children: [
                         Text(
                           'Scheduled Tasks',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.bold,
-                            fontSize: isMobile ? 24 : 32,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -46,7 +45,6 @@ class SchedulerScreen extends ConsumerWidget {
                           'Manage your automated reports and reminders',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: AppColors.textSecondary,
-                            fontSize: isMobile ? 14 : 16,
                           ),
                         ),
                       ],
@@ -201,7 +199,7 @@ class SchedulerScreen extends ConsumerWidget {
           style: TextStyle(
             color: primary ? Colors.white : AppColors.accentGreen,
             fontWeight: FontWeight.w600,
-            fontSize: isMobile ? 13 : 14,
+            fontSize: Theme.of(context).textTheme.labelLarge?.fontSize,
           )
         ),
         style: ElevatedButton.styleFrom(
@@ -503,10 +501,9 @@ class _CreateScheduleDialogState extends ConsumerState<CreateScheduleDialog> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: const TextStyle(
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
-          fontSize: 14,
         ),
       ),
     );
@@ -515,7 +512,7 @@ class _CreateScheduleDialogState extends ConsumerState<CreateScheduleDialog> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.inactive, fontSize: 14),
+      hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.inactive),
       filled: true,
       fillColor: Colors.grey.withOpacity(0.04),
       border: OutlineInputBorder(

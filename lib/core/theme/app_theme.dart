@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:business_analytics_chat/core/theme/app_colors.dart';
 
 class AppTheme {
@@ -8,86 +7,88 @@ class AppTheme {
     // Even in "dark mode" system settings, we maintain the dark sidebar / light content 
     // distinction as requested in the visual reference.
     
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final double scale = (screenWidth / 390).clamp(0.9, 1.2);
+
     TextTheme buildTextTheme(Brightness brightness) {
       final Color textColor = brightness == Brightness.light ? AppColors.textPrimary : Colors.white;
-      final Color secondaryColor = brightness == Brightness.light ? AppColors.textSecondary : Colors.white70;
-
-      return const TextTheme(
+      
+      return TextTheme(
         // Metric numbers (22-26 Bold)
         displayLarge: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 26,
+          fontSize: 26 * scale,
           fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
+          color: textColor,
         ),
         displayMedium: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 24,
+          fontSize: 24 * scale,
           fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
+          color: textColor,
         ),
         displaySmall: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 22,
+          fontSize: 22 * scale,
           fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
+          color: textColor,
         ),
         // App titles (20 SemiBold)
         headlineLarge: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 20,
+          fontSize: 20 * scale,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: textColor,
         ),
         // Section headings (18 SemiBold)
         headlineMedium: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 18,
+          fontSize: 18 * scale,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: textColor,
         ),
         // Body text (15 Regular)
         bodyLarge: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 15,
+          fontSize: 15 * scale,
           fontWeight: FontWeight.w400,
-          color: AppColors.textPrimary,
+          color: textColor,
           height: 1.5,
         ),
         // Table text / Labels (14 Medium for headers, but default bodyMedium for rows)
         bodyMedium: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 14,
+          fontSize: 14 * scale,
           fontWeight: FontWeight.w400,
-          color: AppColors.textPrimary,
+          color: textColor,
           height: 1.4,
         ),
         // Secondary text (13 Regular)
         bodySmall: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 13,
+          fontSize: 13 * scale,
           fontWeight: FontWeight.w400,
-          color: AppColors.textSecondary,
+          color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
           height: 1.4,
         ),
         // UI Controls / Labels (14 Medium)
         labelLarge: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 14,
+          fontSize: 14 * scale,
           fontWeight: FontWeight.w500,
-          color: AppColors.textPrimary,
+          color: textColor,
         ),
         labelMedium: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 13,
+          fontSize: 13 * scale,
           fontWeight: FontWeight.w500,
-          color: AppColors.textSecondary,
+          color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
         ),
         labelSmall: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 12,
+          fontSize: 12 * scale,
           fontWeight: FontWeight.w500,
-          color: AppColors.textSecondary,
+          color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
         ),
       );
     }
@@ -123,16 +124,16 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       ),
 
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.primaryBackground,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        iconTheme: IconThemeData(color: AppColors.accentGreen),
+        iconTheme: const IconThemeData(color: AppColors.accentGreen),
         titleTextStyle: TextStyle(
           fontFamily: 'Inter',
           color: AppColors.textPrimary,
-          fontSize: 20,
+          fontSize: 20 * scale,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -148,18 +149,18 @@ class AppTheme {
       ),
 
       // Table styling
-      dataTableTheme: const DataTableThemeData(
+      dataTableTheme: DataTableThemeData(
         headingRowColor: WidgetStatePropertyAll(AppColors.accentGold),
         headingTextStyle: TextStyle(
           fontFamily: 'Inter',
           color: Colors.white,
           fontWeight: FontWeight.w500, // Medium for table headers
-          fontSize: 14,
+          fontSize: 14 * scale,
         ),
         dataTextStyle: TextStyle(
           fontFamily: 'Inter',
           color: AppColors.textPrimary,
-          fontSize: 14,
+          fontSize: 14 * scale,
           fontWeight: FontWeight.w400, // Regular for body
         ),
         dividerThickness: 1,
@@ -188,10 +189,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.accentGreen, width: 1.5),
         ),
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontFamily: 'Inter',
           color: AppColors.textSecondary,
-          fontSize: 14,
+          fontSize: 14 * scale,
           fontWeight: FontWeight.w400,
         ),
       ),
@@ -202,10 +203,10 @@ class AppTheme {
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          textStyle: const TextStyle(
+          textStyle: TextStyle(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w500, // Medium for UI controls
-            fontSize: 14,
+            fontSize: 14 * scale,
           ),
         ),
       ),

@@ -45,7 +45,7 @@ class ApiConfig {
   // API 1: LOGIN
   // ============================================================================
   /// POST /auth/login
-  /// Body: { "email": "1111319", "password": "Orient" }
+  /// Body: { "email": "1111319", "password": "Drishti" }
   /// Response: { "status": 1, "accessToken": "..." }
   static String get loginEndpoint => '$_apiChatbotBase/auth/login';
 

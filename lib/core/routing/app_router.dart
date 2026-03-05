@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:business_analytics_chat/features/auth/state/auth_notifier.dart';
-import 'package:business_analytics_chat/features/auth/presentation/screens/login_screen.dart';
-import 'package:business_analytics_chat/features/auth/presentation/screens/splash_screen.dart';
-import 'package:business_analytics_chat/features/chat/presentation/screens/conversation_screen.dart';
-import 'package:business_analytics_chat/features/chat/presentation/widgets/scaffold_with_sidebar.dart';
-import 'package:business_analytics_chat/features/home_widget/home_widget_placeholder.dart';
+import 'package:business_analytics_chat/modules/auth/state/auth_notifier.dart';
+import 'package:business_analytics_chat/modules/auth/presentation/screens/login_screen.dart';
+import 'package:business_analytics_chat/modules/auth/presentation/screens/splash_screen.dart';
+import 'package:business_analytics_chat/modules/chat/presentation/screens/conversation_screen.dart';
+import 'package:business_analytics_chat/modules/chat/presentation/widgets/scaffold_with_sidebar.dart';
+import 'package:business_analytics_chat/modules/home_widget/home_widget_placeholder.dart';
 import 'package:business_analytics_chat/modules/scheduler/screens/scheduler_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();

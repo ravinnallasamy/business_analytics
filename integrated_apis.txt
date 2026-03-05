@@ -1,0 +1,46 @@
+# Integrated APIs - Drishti Analytics
+
+This file lists all the backend endpoints integrated into the application.
+You can modify the base URLs and endpoints in `lib/core/config/api_config.dart`.
+
+## Base URLs
+- API Chatbot Base: https://api-chatbot.fuzionest.com
+- Main Chatbot Base: https://chatbot.fuzionest.com
+
+## Authentication Module
+1. **Login API**
+   - URL: `POST` https://api-chatbot.fuzionest.com/auth/login
+   - Purpose: Authenticate user and receive access token.
+
+## Chat & Conversation Module
+2. **Get All Conversations**
+   - URL: `GET` https://chatbot.fuzionest.com/api/conversations
+   - Purpose: Fetch list of previous chats for the sidebar.
+
+3. **Send Question (AI Run)**
+   - URL: `POST` https://api-chatbot.fuzionest.com/api/v2/agent/run
+   - Purpose: Send a prompt to the AI and get a response.
+
+4. **Get Chat History**
+   - URL: `GET` https://chatbot.fuzionest.com/api/conversations/{id}/messages
+   - Purpose: Load message history for a specific chat session.
+
+5. **Rename Conversation**
+   - URL: `PATCH` https://chatbot.fuzionest.com/api/conversations/{id}
+   - Purpose: Change the title of a chat.
+
+6. **Delete Conversation**
+   - URL: `DELETE` https://chatbot.fuzionest.com/api/conversations/{id}
+   - Purpose: Remove a single chat session.
+
+7. **Delete All Conversations**
+   - URL: `DELETE` https://chatbot.fuzionest.com/api/conversations
+   - Purpose: Clear all chat history.
+
+## Widget Data
+8. **Widget Analytics Update**
+   - URL: (Derived from Send Question)
+   - Purpose: Background service fetches data to update Android/iOS home widgets.
+
+---
+Global Configuration File: `lib/core/config/api_config.dart`

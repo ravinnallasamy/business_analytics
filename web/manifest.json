@@ -1,16 +1,16 @@
 {
-    "name": "Orient Analytics",
-    "short_name": "Orient",
+    "name": "Drishti Analytics",
+    "short_name": "Drishti",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#1967D2",
-    "description": "Orient Business Analytics Chat.",
+    "description": "Drishti Business Analytics Chat.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
         {
-            "src": "assets/assets/orient-logo.jpg",
+            "src": "assets/assets/logo.jpg",
             "sizes": "192x192 512x512",
             "type": "image/jpeg"
         }
