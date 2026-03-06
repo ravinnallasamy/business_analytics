@@ -16,11 +16,14 @@ class MessageView extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 12.0),
       child: Column(
-        crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           // Message Bubble/Container
           Row(
-            mainAxisAlignment: message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: message.isUser
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Flexible(
@@ -30,7 +33,7 @@ class MessageView extends StatelessWidget {
               ),
             ],
           ),
-          
+
           // Spacing to next message
           const SizedBox(height: 8),
         ],
@@ -40,7 +43,7 @@ class MessageView extends StatelessWidget {
 
   Widget _buildAvatar(BuildContext context, {required bool isUser}) {
     if (isUser) return const SizedBox.shrink();
-    
+
     return Container(
       margin: const EdgeInsets.only(top: 4),
       child: Icon(
@@ -70,12 +73,13 @@ class MessageView extends StatelessWidget {
         data: message.content,
         styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
           p: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            height: 1.5,
-            color: Colors.black, // Solid black for better contrast
-            fontWeight: FontWeight.w400, // Regular weight
-            fontFamily: 'Inter',
-          ),
-          strong: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                height: 1.5,
+                color: Colors.black, // Solid black for better contrast
+                fontWeight: FontWeight.w400, // Regular weight
+                fontFamily: 'Inter',
+              ),
+          strong:
+              const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
       ),
     );
@@ -86,10 +90,12 @@ class MessageView extends StatelessWidget {
       return const _LoaderMessage();
     }
 
-    final contentBlocks = message.blocks.where((b) => b.type != 'suggestions').toList();
-    final suggestionBlocks = message.blocks.where((b) => b.type == 'suggestions').toList();
+    final contentBlocks =
+        message.blocks.where((b) => b.type != 'suggestions').toList();
+    final suggestionBlocks =
+        message.blocks.where((b) => b.type == 'suggestions').toList();
 
-    return SizedBox(
+    return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -108,7 +114,9 @@ class MessageView extends StatelessWidget {
         children: [
           // Content Blocks
           ...contentBlocks.map((block) {
-            final isFullWidth = block.type == 'table' || block.type == 'chart' || block.type == 'metrics';
+            final isFullWidth = block.type == 'table' ||
+                block.type == 'chart' ||
+                block.type == 'metrics';
             return Padding(
               padding: EdgeInsets.only(
                 bottom: 12,
