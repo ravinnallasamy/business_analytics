@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:business_analytics_chat/modules/chat/state/chat_state.dart';
 import 'package:business_analytics_chat/modules/auth/state/auth_notifier.dart';
 import 'package:business_analytics_chat/core/theme/app_colors.dart';
@@ -258,6 +259,86 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
     super.dispose();
   }
 
+
+  void _sendEmail() async {
+    final List<String> bodyParts = [];
+    
+    // 1. Initial greeting/header block
+    if (_blockControllers.isNotEmpty) {
+      bodyParts.add(_blockControllers[0].text);
+    }
+    
+    // 2. Additional user comments (inserted after the header)
+    if (_commentsController.text.trim().isNotEmpty) {
+      bodyParts.add("USER COMMENTS:\n${_commentsController.text.trim()}\n${'-' * 20}");
+    }
+    
+    int controllerIndex = 1;
+    
+    // 3. Executive summary
+    if (widget.message.content.trim().isNotEmpty && controllerIndex < _blockControllers.length) {
+      bodyParts.add(_blockControllers[controllerIndex++].text);
+    }
+    
+    // 4. Middle blocks (text, tables, charts)
+    for (var block in widget.message.blocks) {
+      if (block.type == 'table') {
+        bodyParts.add(_processTableData(block.data));
+        bodyParts.add('\n'); // Add some spacing after table
+      } else if (block.type == 'chart') {
+        bodyParts.add(_processChartData(block.data));
+        bodyParts.add('\n'); // Add some spacing after chart
+      } else if (_shouldBlockHaveTextArea(block)) {
+        if (controllerIndex < _blockControllers.length) {
+          bodyParts.add(_blockControllers[controllerIndex++].text);
+        }
+      }
+    }
+    
+    // 5. Closing block
+    if (controllerIndex < _blockControllers.length) {
+      bodyParts.add(_blockControllers[controllerIndex].text);
+    }
+
+    final fullBody = bodyParts.join('\n\n');
+    final subject = _subjectController.text;
+    final to = _toController.text;
+
+    final Uri emailLaunchUri = Uri(
+      scheme: 'mailto',
+      path: to,
+      query: _encodeQueryParameters(<String, String>{
+        'subject': subject,
+        'body': fullBody,
+      }),
+    );
+
+    try {
+      if (await canLaunchUrl(emailLaunchUri)) {
+        await launchUrl(emailLaunchUri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not launch email app'), behavior: SnackBarBehavior.floating),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  String _encodeQueryParameters(Map<String, String> params) {
+    return params.entries
+        .map((MapEntry<String, String> e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -309,7 +390,7 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
                     ),
                     const SizedBox(height: 24),
                     _buildLabel('Subject'),
-                    _buildTextField(_subjectController),
+                    _buildTextField(_subjectController, readOnly: true),
                     const SizedBox(height: 24),
                     
                     _buildLabel('Draft Body'),
@@ -331,7 +412,7 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mail sending will be enabled later'), behavior: SnackBarBehavior.floating)),
+                onPressed: _sendEmail,
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentGreen, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                 child: Text('Send', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
               ),
@@ -502,12 +583,17 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller) {
+  Widget _buildTextField(TextEditingController controller, {bool readOnly = false}) {
     return TextField(
       controller: controller,
-      style: Theme.of(context).textTheme.bodyLarge,
+      readOnly: readOnly,
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+        color: readOnly ? Colors.black54 : Colors.black87,
+      ),
       decoration: InputDecoration(
         isDense: true,
+        filled: readOnly,
+        fillColor: readOnly ? Colors.grey[50] : Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),

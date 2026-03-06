@@ -159,6 +159,7 @@ class TextBlock extends StatelessWidget {
           _BlockType.body => theme.textTheme.bodyLarge?.fontSize,
           _BlockType.action => theme.textTheme.bodyLarge?.fontSize,
         },
+        fontFamily: 'Inter',
         color: switch (type) {
           _BlockType.heading => neutralDark,
           _BlockType.action => accentColor,

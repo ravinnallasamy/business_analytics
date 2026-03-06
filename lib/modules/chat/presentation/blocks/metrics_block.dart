@@ -83,7 +83,8 @@ class MetricsBlock extends StatelessWidget {
                       styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
                         p: Theme.of(context).textTheme.labelSmall?.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.normal,
+                              fontWeight: FontWeight.w500, // Inter Medium
+                              fontFamily: 'Inter',
                               letterSpacing: 1.2,
                             ),
                         strong: const TextStyle(fontWeight: FontWeight.bold),
@@ -95,6 +96,8 @@ class MetricsBlock extends StatelessWidget {
                       styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
                         p: Theme.of(context).textTheme.displaySmall?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w700, // Inter Bold
+                              fontFamily: 'Inter',
                             ),
                         strong: const TextStyle(fontWeight: FontWeight.bold),
                       ),
