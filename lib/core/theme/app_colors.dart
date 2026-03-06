@@ -5,7 +5,7 @@ class AppColors {
   AppColors._();
 
   // Backgrounds
-  static const Color primaryBackground = Color(0xFFFDFBF7); // Soft cream / off-white
+  static const Color primaryBackground = Colors.white; // Pure white background
   static const Color sidebarBackground = Color(0xFF1A1A1A); // Dark charcoal / near-black
   
   // Accents

@@ -21,7 +21,7 @@ class TextBlock extends StatelessWidget {
       if (currentParagraph.trim().isNotEmpty) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: UIConstants.paddingMedium),
+            padding: const EdgeInsets.only(bottom: 10), // Gemini-style paragraph spacing
             child: MarkdownBody(
               data: currentParagraph.trim(),
               selectable: true,
@@ -44,8 +44,8 @@ class TextBlock extends StatelessWidget {
         widgets.add(
           Padding(
             padding: EdgeInsets.only(
-              top: isFirstBlock ? 0 : UIConstants.paddingXLarge,
-              bottom: UIConstants.paddingSmall,
+              top: isFirstBlock ? 0 : 16, // Section heading margin top
+              bottom: 8, // Section heading margin bottom
             ),
             child: MarkdownBody(
               data: trimmedLine,
@@ -61,7 +61,7 @@ class TextBlock extends StatelessWidget {
         flushParagraph();
         widgets.add(
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: UIConstants.paddingVSmall),
+            padding: const EdgeInsets.only(bottom: 6), // Spacing between list items
             child: MarkdownBody(
               data: trimmedLine,
               styleSheet: _getStyleSheet(context, type: _BlockType.action),
@@ -82,17 +82,9 @@ class TextBlock extends StatelessWidget {
     }
     flushParagraph();
 
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: UIConstants.paddingSmall,
-        bottom: UIConstants.paddingLarge,
-        left: UIConstants.paddingMedium,
-        right: UIConstants.paddingMedium,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: widgets,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
     );
   }
 

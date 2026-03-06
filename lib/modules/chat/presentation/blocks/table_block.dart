@@ -201,165 +201,157 @@ class _TableBlockState extends State<TableBlock> {
     const dataAlignment = Alignment.centerLeft;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: Border(
-           top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-           bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-        ),
+      margin: const EdgeInsets.symmetric(vertical: 14), // Gemini-style outer spacing
+      decoration: const BoxDecoration(
+        color: Colors.white,
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: UIConstants.paddingMedium),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Builder(
-                builder: (context) {
-                  final screenWidth = MediaQuery.of(context).size.width;
-                  final isCompact = screenWidth < 500;
-                  
-                  Widget headerTitle = title.isNotEmpty
-                      ? Text(
-                            title,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  color: AppColors.textPrimary,
-                                ),
-                          )
-                      : const SizedBox.shrink();
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final isCompact = screenWidth < 500;
+              
+              Widget headerTitle = title.isNotEmpty
+                  ? Text(
+                        title,
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                      )
+                  : const SizedBox.shrink();
 
-                  Widget searchField = TextField(
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                    decoration: InputDecoration(
-                      hintText: 'Search data...',
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.1)),
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surface,
-                    ),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  );
+              Widget searchField = TextField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: 'Search data...',
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.1)),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surface,
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              );
 
-                  Widget actions = Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildHeaderIcon(context, Icons.visibility_outlined, 'Columns', _showColumnSelector),
-                      const SizedBox(width: 8),
-                      _buildHeaderIcon(context, Icons.download_rounded, 'Export CSV', () => _exportData(displayColumns, displayRows)),
-                    ],
-                  );
+              Widget actions = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildHeaderIcon(context, Icons.visibility_outlined, 'Columns', _showColumnSelector),
+                  const SizedBox(width: 8),
+                  _buildHeaderIcon(context, Icons.download_rounded, 'Export CSV', () => _exportData(displayColumns, displayRows)),
+                ],
+              );
 
-                  if (isCompact) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            if (title.isNotEmpty) Expanded(child: headerTitle),
-                            const SizedBox(width: 8),
-                            actions,
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(height: 40, width: double.infinity, child: searchField),
+                        if (title.isNotEmpty) Expanded(child: headerTitle),
+                        const SizedBox(width: 8),
+                        actions,
                       ],
-                    );
-                  }
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(height: 40, width: double.infinity, child: searchField),
+                  ],
+                );
+              }
 
-                  return Row(
-                    children: [
-                      if (title.isNotEmpty) headerTitle,
-                      const SizedBox(width: 16),
-                      Expanded(child: SizedBox(height: 40, child: searchField)),
-                      const SizedBox(width: 8),
-                      actions,
-                    ],
-                  );
-                },
-              ),
-            ),
-            
-            const SizedBox(height: 16),
+              return Row(
+                children: [
+                  if (title.isNotEmpty) headerTitle,
+                  const SizedBox(width: 16),
+                  Expanded(child: SizedBox(height: 40, child: searchField)),
+                  const SizedBox(width: 8),
+                  actions,
+                ],
+              );
+            },
+          ),
+          
+          const SizedBox(height: 16),
 
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final tableWidth = totalWidth > constraints.maxWidth ? totalWidth : constraints.maxWidth;
-                return Scrollbar(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tableWidth = totalWidth > constraints.maxWidth ? totalWidth : constraints.maxWidth;
+              return Scrollbar(
+                controller: _horizontalScrollController,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
                   controller: _horizontalScrollController,
-                  thumbVisibility: true,
-                  child: SingleChildScrollView(
-                    controller: _horizontalScrollController,
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Container(
-                       width: tableWidth,
-                       child: Table(
-                         columnWidths: tableColumnWidths,
-                         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                         border: TableBorder.all(
-                            color: Theme.of(context).colorScheme.outline,
-                            width: 1,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Container(
+                     width: tableWidth,
+                     child: Table(
+                       columnWidths: tableColumnWidths,
+                       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                       border: TableBorder.all(
+                          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                          width: 1,
+                       ),
+                       children: [
+                         TableRow(
+                           decoration: const BoxDecoration(
+                             color: AppColors.accentGold,
+                           ),
+                           children: List.generate(displayColumns.length, (index) {
+                             return Padding(
+                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // Cell padding
+                               child: Align(
+                                 alignment: headerAlignment,
+                                 child: Text(
+                                   displayColumns[index],
+                                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                     color: Colors.white,
+                                     fontWeight: FontWeight.bold,
+                                   ),
+                                   textAlign: TextAlign.center,
+                                   softWrap: false,
+                                 ),
+                               ),
+                             );
+                           }),
                          ),
-                         children: [
-                           TableRow(
-                             decoration: BoxDecoration(
-                               color: Theme.of(context).colorScheme.secondary,
-                             ),
+                         ...displayRows.take(_rowsLimit).map((row) {
+                           return TableRow(
                              children: List.generate(displayColumns.length, (index) {
+                               final val = index < row.length ? row[index] : '';
                                return Padding(
-                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // Cell padding
                                  child: Align(
-                                   alignment: headerAlignment,
+                                   alignment: dataAlignment,
                                    child: Text(
-                                     displayColumns[index],
-                                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                       color: Colors.white,
-                                     ),
-                                     textAlign: TextAlign.center,
-                                     softWrap: false,
+                                     val.toString(),
+                                     style: Theme.of(context).textTheme.bodyMedium,
+                                     maxLines: 1,
+                                     overflow: TextOverflow.ellipsis,
                                    ),
                                  ),
                                );
                              }),
-                           ),
-                           ...displayRows.take(_rowsLimit).map((row) {
-                             return TableRow(
-                               children: List.generate(displayColumns.length, (index) {
-                                 final val = index < row.length ? row[index] : '';
-                                 return Padding(
-                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                   child: Align(
-                                     alignment: dataAlignment,
-                                     child: Text(
-                                       val.toString(),
-                                       style: Theme.of(context).textTheme.bodyMedium,
-                                       maxLines: 1,
-                                       overflow: TextOverflow.ellipsis,
-                                     ),
-                                   ),
-                                 );
-                               }),
-                             );
-                           }),
-                         ],
-                       ),
-                    ),
+                           );
+                         }),
+                       ],
+                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          ),
             
             // Show More / Show Less Buttons
             if (displayRows.length > 10 || _rowsLimit > 10)
@@ -402,7 +394,6 @@ class _TableBlockState extends State<TableBlock> {
               ),
           ],
         ),
-      ),
     );
   }
 }

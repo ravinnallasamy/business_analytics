@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:business_analytics_chat/core/constants/ui_constants.dart';
+import 'package:business_analytics_chat/core/theme/app_colors.dart';
 
 class ChartBlock extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -91,23 +92,11 @@ class ChartBlock extends StatelessWidget {
     final bottomReserved = rotateLabels ? 56.0 : 36.0;
     final leftReserved = 52.0;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          UIConstants.paddingMedium,
-          UIConstants.paddingMedium,
-          UIConstants.paddingSmall, // less right so Y labels aren't clipped
-          UIConstants.paddingMedium,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 14), // Gemini-style outer spacing
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             // ── Title ──────────────────────────────────────────────────────
             if (title.isNotEmpty)
               Padding(
@@ -138,9 +127,7 @@ class ChartBlock extends StatelessWidget {
                         dataRowMaxHeight: 32,
                         horizontalMargin: 12,
                         columnSpacing: 24,
-                        headingRowColor: WidgetStateProperty.all(
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                        ),
+                        headingRowColor: WidgetStateProperty.all(AppColors.accentGold),
                         columns: [
                           DataColumn(
                             label: Text(
@@ -239,7 +226,6 @@ class ChartBlock extends StatelessWidget {
               ),
           ],
         ),
-      ),
     );
   }
 
