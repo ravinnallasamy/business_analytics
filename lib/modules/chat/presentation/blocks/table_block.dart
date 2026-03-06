@@ -23,6 +23,7 @@ class _TableBlockState extends State<TableBlock> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
+  int _rowsLimit = 10;
 
   @override
   void initState() {
@@ -48,13 +49,14 @@ class _TableBlockState extends State<TableBlock> {
   Future<void> _exportData(List<String> columns, List<List<dynamic>> rows) async {
     try {
       if (!kIsWeb) {
-        if (Platform.isAndroid || Platform.isIOS) {
+        if (Platform.isAndroid) {
           var status = await Permission.storage.status;
           if (!status.isGranted) {
             status = await Permission.storage.request();
             if (!status.isGranted) return;
           }
         }
+        // iOS does not require storage permission for getApplicationDocumentsDirectory()
       }
 
       List<List<dynamic>> csvData = [
@@ -221,43 +223,33 @@ class _TableBlockState extends State<TableBlock> {
                   final isCompact = screenWidth < 500;
                   
                   Widget headerTitle = title.isNotEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
+                      ? Text(
                             title,
                             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                   color: AppColors.textPrimary,
                                 ),
-                          ),
-                        )
+                          )
                       : const SizedBox.shrink();
 
-                  Widget searchField = Expanded(
-                    flex: isCompact ? 0 : 1,
-                    child: SizedBox(
-                      height: 40,
-                      width: isCompact ? double.infinity : null,
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _onSearchChanged,
-                        decoration: InputDecoration(
-                          hintText: 'Search data...',
-                          prefixIcon: const Icon(Icons.search, size: 18),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.1)),
-                          ),
-                          filled: true,
-                          fillColor: Theme.of(context).colorScheme.surface,
-                        ),
-                        style: Theme.of(context).textTheme.bodySmall,
+                  Widget searchField = TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Search data...',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.1)),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surface,
                     ),
+                    style: Theme.of(context).textTheme.bodySmall,
                   );
 
                   Widget actions = Row(
@@ -273,14 +265,15 @@ class _TableBlockState extends State<TableBlock> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        headerTitle,
                         Row(
                           children: [
-                            searchField, 
+                            if (title.isNotEmpty) Expanded(child: headerTitle),
                             const SizedBox(width: 8),
                             actions,
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        SizedBox(height: 40, width: double.infinity, child: searchField),
                       ],
                     );
                   }
@@ -289,7 +282,7 @@ class _TableBlockState extends State<TableBlock> {
                     children: [
                       if (title.isNotEmpty) headerTitle,
                       const SizedBox(width: 16),
-                      searchField,
+                      Expanded(child: SizedBox(height: 40, child: searchField)),
                       const SizedBox(width: 8),
                       actions,
                     ],
@@ -341,7 +334,7 @@ class _TableBlockState extends State<TableBlock> {
                                );
                              }),
                            ),
-                           ...displayRows.map((row) {
+                           ...displayRows.take(_rowsLimit).map((row) {
                              return TableRow(
                                children: List.generate(displayColumns.length, (index) {
                                  final val = index < row.length ? row[index] : '';
@@ -349,10 +342,11 @@ class _TableBlockState extends State<TableBlock> {
                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                    child: Align(
                                      alignment: dataAlignment,
-                                     child: SelectableText(
+                                     child: Text(
                                        val.toString(),
                                        style: Theme.of(context).textTheme.bodyMedium,
                                        maxLines: 1,
+                                       overflow: TextOverflow.ellipsis,
                                      ),
                                    ),
                                  );
@@ -366,6 +360,46 @@ class _TableBlockState extends State<TableBlock> {
                 );
               },
             ),
+            
+            // Show More / Show Less Buttons
+            if (displayRows.length > 10 || _rowsLimit > 10)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_rowsLimit > 10)
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _rowsLimit = (_rowsLimit - 10).clamp(10, 1000);
+                          });
+                        },
+                        icon: const Icon(Icons.arrow_drop_up, size: 20),
+                        label: const Text('Show Less'),
+                        style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                      ),
+                    if (displayRows.length > _rowsLimit)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _rowsLimit += 10;
+                            });
+                          },
+                          icon: const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
+                          label: const Text('Show More (+10)', style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentGreen,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

@@ -13,21 +13,26 @@ class MessageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Gemini: airy spacing between messages
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 12.0),
+      child: Column(
+        crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: message.isUser
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildUserMessage(context),
-                  )
-                : _buildAssistantMessage(context),
+          // Message Bubble/Container
+          Row(
+            mainAxisAlignment: message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                child: message.isUser
+                    ? _buildUserMessage(context)
+                    : _buildAssistantMessage(context),
+              ),
+            ],
           ),
+          
+          // Spacing to next message
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -48,26 +53,29 @@ class MessageView extends StatelessWidget {
 
   Widget _buildUserMessage(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: double.infinity),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.8,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFE8F5E9), // Soft light green (mint)
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
+          topLeft: Radius.circular(16),
           topRight: Radius.circular(4),
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
+          bottomLeft: Radius.circular(16),
+          bottomRight: Radius.circular(16),
         ),
-        border: Border.all(color: AppColors.borderGray),
       ),
       child: MarkdownBody(
         data: message.content,
         styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-          p: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          p: Theme.of(context).textTheme.bodyMedium?.copyWith(
             height: 1.5,
-            color: AppColors.textPrimary,
+            color: Colors.black, // Solid black for better contrast
+            fontWeight: FontWeight.w400, // Regular weight
+            fontFamily: 'Inter',
           ),
-          strong: const TextStyle(fontWeight: FontWeight.bold),
+          strong: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
       ),
     );
@@ -83,6 +91,18 @@ class MessageView extends StatelessWidget {
 
     return Container(
       width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderGray.withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -92,8 +112,8 @@ class MessageView extends StatelessWidget {
             return Padding(
               padding: EdgeInsets.only(
                 bottom: 12,
-                left: isFullWidth ? 0 : 16,
-                right: isFullWidth ? 0 : 16,
+                left: isFullWidth ? 2 : 8,
+                right: isFullWidth ? 2 : 8,
               ),
               child: BlockRenderer(block: block, messageId: message.id),
             );
@@ -101,7 +121,7 @@ class MessageView extends StatelessWidget {
 
           // Mail Icon (Draft Email) - Placed above suggestions
           Padding(
-            padding: const EdgeInsets.only(left: 12, top: 4, bottom: 8),
+            padding: const EdgeInsets.only(left: 4, top: 4, bottom: 8),
             child: IconButton(
               onPressed: () => _showEmailDraft(context),
               icon: Icon(

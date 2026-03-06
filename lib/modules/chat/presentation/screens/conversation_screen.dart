@@ -155,66 +155,59 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final isLoading = (activeConversation == null && !isNewChat) || isMismatch || isFetchingHistory;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      appBar: !isDesktop 
+          ? AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.menu, color: AppColors.accentGreen),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+              title: Text(
+                activeConversation?.title ?? 'Drishti AI',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1.0),
+                child: Divider(height: 1, color: Colors.grey[200]),
+              ),
+            )
+          : null,
       body: SafeArea(
-        bottom: false,
-        top: false, // Handle top padding manually for cleaner floating UI
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: isLoading
-            ? const _MessageSkeletonList()
-            : Stack(
-                key: ValueKey(activeConversation?.id ?? 'new'),
-                children: [
-                   // Content Layer
-                  Positioned.fill(
-                    child: activeConversation != null
+        child: Column(
+          children: [
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: isLoading
+                  ? const _MessageSkeletonList()
+                  : activeConversation != null
                       ? ListView.builder(
                           controller: _scrollController,
-                          reverse: false, // Changed to false for easier "top of response" control
-                          physics: const AlwaysScrollableScrollPhysics(), 
-                          padding: EdgeInsets.only(
-                            top: isDesktop ? 24 : 80,
-                            bottom: 150, // Added more bottom padding for the input bar
-                          ),
+                          reverse: false,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           itemCount: activeConversation.messages.length,
                           itemBuilder: (context, index) {
                             final message = activeConversation.messages[index];
                             return MessageView(message: message);
                           },
                         )
-                      : Padding(
-                          padding: EdgeInsets.only(top: isDesktop ? 24 : 80, bottom: 120),
+                      : SingleChildScrollView(
+                          padding: EdgeInsets.only(top: isDesktop ? 24 : 60, bottom: 40),
                           child: _NewChatWelcome(onSuggestionTap: (question) {
                             ref.read(chatProvider.notifier).sendMessage(question);
                           }),
                         ),
-                  ),
-                  
-                  // Mobile Menu Button
-                  if (!isDesktop)
-                    Positioned(
-                      top: MediaQuery.of(context).padding.top + 10,
-                      left: 16,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.menu, color: AppColors.accentGreen),
-                          onPressed: () => Scaffold.of(context).openDrawer(),
-                        ),
-                      ),
-                    ),
-                  
-                  // Input Bar
-                  const Align(
-                    alignment: Alignment.bottomCenter,
-                    child: ChatInputBar(isProminent: false),
-                  ),
-                ],
               ),
+            ),
+            
+            // Fixed Footer Input Bar
+            const ChatInputBar(isProminent: false),
+          ],
         ),
       ),
     );
