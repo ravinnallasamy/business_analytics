@@ -28,7 +28,7 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
-    
+
     // Gemini-style Input Panel: Pinned to absolute bottom
     return Container(
       width: double.infinity,
@@ -65,17 +65,19 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
-                      onChanged: (text) => setState(() => _isComposing = text.trim().isNotEmpty),
+                      onChanged: (text) =>
+                          setState(() => _isComposing = text.trim().isNotEmpty),
                       onSubmitted: _handleSubmitted,
+                      onTapOutside: (_) => FocusScope.of(context).unfocus(),
                       maxLines: 5,
                       minLines: 1,
-                      textInputAction: TextInputAction.send,
+                      textInputAction: TextInputAction.newline,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: const Color(0xFF444746), // Dimmed text color
-                        fontSize: 18, 
-                        fontWeight: FontWeight.w400,
-                        fontFamily: 'Inter',
-                      ),
+                            color: const Color(0xFF444746), // Dimmed text color
+                            fontSize: 18,
+                            fontWeight: FontWeight.w400,
+                            fontFamily: 'Inter',
+                          ),
                       cursorColor: AppColors.accentGreen,
                       decoration: const InputDecoration(
                         hintText: 'Ask Drishti',
@@ -95,14 +97,14 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                   _buildSendButton(),
                 ],
               ),
-              
+
               // Bottom Section: Future control area (Empty for now)
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   // Future: [+] button, document upload, etc. will be placed here
-                  const SizedBox(height: 24), 
+                  const SizedBox(height: 24),
                 ],
               ),
             ],
@@ -143,7 +145,6 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
         ),
       ),
     );
-
   }
 
   Widget _buildInputRow({
@@ -151,7 +152,7 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
     required bool showSendButton,
     required bool isMobile,
   }) {
-      return const SizedBox.shrink(); // Deprecated helper
+    return const SizedBox.shrink(); // Deprecated helper
   }
 
   @override

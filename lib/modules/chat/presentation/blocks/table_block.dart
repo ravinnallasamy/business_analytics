@@ -223,87 +223,70 @@ class _TableBlockState extends State<TableBlock> {
         children: [
           Builder(
             builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              final isCompact = screenWidth < 500;
-
-              Widget headerTitle = title.isNotEmpty
-                  ? Text(
-                      title,
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
-                    )
-                  : const SizedBox.shrink();
-
-              Widget searchField = TextField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: 'Search data...',
-                  prefixIcon: const Icon(Icons.search, size: 18),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outline
-                            .withOpacity(0.2)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outline
-                            .withOpacity(0.1)),
-                  ),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface,
-                ),
-                style: Theme.of(context).textTheme.bodySmall,
-              );
-
-              Widget actions = Row(
-                mainAxisSize: MainAxisSize.min,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeaderIcon(context, Icons.visibility_outlined,
-                      'Columns', _showColumnSelector),
-                  const SizedBox(width: 8),
-                  _buildHeaderIcon(
-                      context,
-                      Icons.download_rounded,
-                      'Export CSV',
-                      () => _exportData(displayColumns, displayRows)),
-                ],
-              );
-
-              if (isCompact) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        if (title.isNotEmpty) Expanded(child: headerTitle),
-                        const SizedBox(width: 8),
-                        actions,
-                      ],
+                  if (title.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(color: AppColors.textPrimary),
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                        height: 40, width: double.infinity, child: searchField),
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  if (title.isNotEmpty) headerTitle,
-                  const SizedBox(width: 16),
-                  Expanded(child: SizedBox(height: 40, child: searchField)),
-                  const SizedBox(width: 8),
-                  actions,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: _onSearchChanged,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) =>
+                                FocusScope.of(context).unfocus(),
+                            decoration: InputDecoration(
+                              hintText: 'Search data...',
+                              prefixIcon: const Icon(Icons.search, size: 18),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outline
+                                        .withOpacity(0.2)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outline
+                                        .withOpacity(0.1)),
+                              ),
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surface,
+                            ),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildHeaderIcon(context, Icons.visibility_outlined,
+                          'Columns', _showColumnSelector),
+                      const SizedBox(width: 8),
+                      _buildHeaderIcon(
+                          context,
+                          Icons.download_rounded,
+                          'Export CSV',
+                          () => _exportData(displayColumns, displayRows)),
+                    ],
+                  ),
                 ],
               );
             },
@@ -316,78 +299,93 @@ class _TableBlockState extends State<TableBlock> {
               final tableWidth = totalWidth > constraints.maxWidth
                   ? totalWidth
                   : constraints.maxWidth;
-              return Scrollbar(
-                controller: _horizontalScrollController,
-                thumbVisibility: true,
-                child: SingleChildScrollView(
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Scrollbar(
                   controller: _horizontalScrollController,
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Container(
-                    width: tableWidth,
-                    child: Table(
-                      columnWidths: tableColumnWidths,
-                      defaultVerticalAlignment:
-                          TableCellVerticalAlignment.middle,
-                      border: TableBorder.all(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outline
-                            .withOpacity(0.2),
-                        width: 1,
-                      ),
-                      children: [
-                        TableRow(
-                          decoration: const BoxDecoration(
-                            color: AppColors.accentGold,
+                  thumbVisibility: true,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onHorizontalDragUpdate: (details) {
+                      final pos = _horizontalScrollController.position;
+                      final newOffset = (pos.pixels - details.delta.dx)
+                          .clamp(pos.minScrollExtent, pos.maxScrollExtent);
+                      pos.jumpTo(newOffset);
+                    },
+                    child: SingleChildScrollView(
+                      controller: _horizontalScrollController,
+                      scrollDirection: Axis.horizontal,
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: Container(
+                        width: tableWidth,
+                        child: Table(
+                          columnWidths: tableColumnWidths,
+                          defaultVerticalAlignment:
+                              TableCellVerticalAlignment.middle,
+                          border: TableBorder.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outline
+                                .withOpacity(0.2),
+                            width: 1,
                           ),
-                          children:
-                              List.generate(displayColumns.length, (index) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10), // Cell padding
-                              child: Align(
-                                alignment: headerAlignment,
-                                child: Text(
-                                  displayColumns[index],
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelLarge
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                  textAlign: TextAlign.center,
-                                  softWrap: false,
-                                ),
+                          children: [
+                            TableRow(
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFFCA08),
                               ),
-                            );
-                          }),
-                        ),
-                        ...displayRows.take(_rowsLimit).map((row) {
-                          return TableRow(
-                            children:
-                                List.generate(displayColumns.length, (index) {
-                              final val = index < row.length ? row[index] : '';
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10), // Cell padding
-                                child: Align(
-                                  alignment: dataAlignment,
-                                  child: Text(
-                                    val.toString(),
-                                    style:
-                                        Theme.of(context).textTheme.bodyMedium,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                              children:
+                                  List.generate(displayColumns.length, (index) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10), // Cell padding
+                                  child: Align(
+                                    alignment: headerAlignment,
+                                    child: Text(
+                                      displayColumns[index],
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelLarge
+                                          ?.copyWith(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                      textAlign: TextAlign.center,
+                                      softWrap: false,
+                                    ),
                                   ),
-                                ),
+                                );
+                              }),
+                            ),
+                            ...displayRows.take(_rowsLimit).map((row) {
+                              return TableRow(
+                                children: List.generate(displayColumns.length,
+                                    (index) {
+                                  final val =
+                                      index < row.length ? row[index] : '';
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 10), // Cell padding
+                                    child: Align(
+                                      alignment: dataAlignment,
+                                      child: Text(
+                                        val.toString(),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  );
+                                }),
                               );
                             }),
-                          );
-                        }),
-                      ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
