@@ -16,64 +16,63 @@ class MetricsBlock extends StatelessWidget {
     
     if (metrics.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (summary != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                MarkdownBody(
-                  data: summary,
-                  styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                    p: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14), // Gemini-style outer margin
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (summary != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  MarkdownBody(
+                    data: summary,
+                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                      p: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                      strong: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  if (period != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.secondaryContainer,
+                          width: 1,
                         ),
-                    strong: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                if (period != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.secondaryContainer,
-                        width: 1,
+                      ),
+                      child: Text(
+                        period,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSecondaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      period,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSecondaryContainer,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        Wrap(
-          spacing: UIConstants.paddingMedium,
-          runSpacing: UIConstants.paddingMedium,
-          alignment: WrapAlignment.start,
-          crossAxisAlignment: WrapCrossAlignment.start,
-          children: metrics.map((item) {
-            return Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                ],
               ),
-              color: Theme.of(context).colorScheme.surface,
-              child: Container(
+            ),
+          Wrap(
+            spacing: 14,
+            runSpacing: 14,
+            alignment: WrapAlignment.start,
+            crossAxisAlignment: WrapCrossAlignment.start,
+            children: metrics.map((item) {
+              return Container(
                 constraints: const BoxConstraints(minWidth: 150, maxWidth: 200),
-                padding: const EdgeInsets.all(UIConstants.paddingMedium),
+                padding: const EdgeInsets.all(14), // Metrics block padding
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,12 +103,11 @@ class MetricsBlock extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 16),
-      ],
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 }

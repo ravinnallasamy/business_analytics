@@ -164,7 +164,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
               title: Text(
-                activeConversation?.title ?? 'Drishti AI',
+                activeConversation?.title ?? 'Drishti',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -176,10 +176,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               ),
             )
           : null,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
+      body: Column(
+        children: [
+          Expanded(
+            child: SafeArea(
+              bottom: false, // Let InputBar handle the bottom
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 child: isLoading
@@ -204,11 +205,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         ),
               ),
             ),
-            
-            // Fixed Footer Input Bar
-            const ChatInputBar(isProminent: false),
-          ],
-        ),
+          ),
+          
+          // Fixed Footer Input Bar - Now bleeds to screen bottom
+          const ChatInputBar(isProminent: false),
+        ],
       ),
     );
   }

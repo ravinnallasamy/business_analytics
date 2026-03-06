@@ -150,11 +150,11 @@ class AppTheme {
 
       // Table styling
       dataTableTheme: DataTableThemeData(
-        headingRowColor: WidgetStatePropertyAll(AppColors.accentGold),
+        headingRowColor: const WidgetStatePropertyAll(AppColors.accentGold),
         headingTextStyle: TextStyle(
           fontFamily: 'Inter',
           color: Colors.white,
-          fontWeight: FontWeight.w500, // Medium for table headers
+          fontWeight: FontWeight.w600, // SemiBold for table headers
           fontSize: 14 * scale,
         ),
         dataTextStyle: TextStyle(

@@ -25,7 +25,7 @@ class SuggestionsBlock extends ConsumerWidget {
     if (items.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 8),
+      padding: const EdgeInsets.only(top: 18, bottom: 8), // Gemini-style suggestion top margin
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

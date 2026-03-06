@@ -29,65 +29,116 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
     
-    // Simplified Input Bar: Single clean floating box
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+    // Gemini-style Input Panel: Pinned to absolute bottom
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+        // Subtle borders as requested
+        border: Border(
+          top: BorderSide(color: Colors.grey[200]!, width: 1.0),
+          bottom: BorderSide(color: Colors.grey[200]!, width: 1.0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
       child: SafeArea(
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28), // Pill-shaped
-            border: Border.all(color: AppColors.borderGray.withOpacity(0.8)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+        top: false, // Don't respect safe area on top as it's at the bottom
+        bottom: true, // Respect safe area for navigation bars
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Section: Input & Send Row (The prompt is now the hint)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      onChanged: (text) => setState(() => _isComposing = text.trim().isNotEmpty),
+                      onSubmitted: _handleSubmitted,
+                      maxLines: 5,
+                      minLines: 1,
+                      textInputAction: TextInputAction.send,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: const Color(0xFF444746), // Dimmed text color
+                        fontSize: 18, 
+                        fontWeight: FontWeight.w400,
+                        fontFamily: 'Inter',
+                      ),
+                      cursorColor: AppColors.accentGreen,
+                      decoration: const InputDecoration(
+                        hintText: 'Ask Drishti',
+                        hintStyle: TextStyle(
+                          color: Color(0xFF6B6B6B),
+                          fontSize: 18,
+                        ),
+                        filled: false,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  _buildSendButton(),
+                ],
+              ),
+              
+              // Bottom Section: Future control area (Empty for now)
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  // Future: [+] button, document upload, etc. will be placed here
+                  const SizedBox(height: 24), 
+                ],
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  onChanged: (text) => setState(() => _isComposing = text.trim().isNotEmpty),
-                  onSubmitted: _handleSubmitted,
-                  maxLines: 4,
-                  minLines: 1,
-                  decoration: const InputDecoration(
-                    hintText: 'Ask anything...',
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    errorBorder: InputBorder.none,
-                    disabledBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              _isComposing 
-                ? IconButton(
-                    onPressed: () => _handleSubmitted(_controller.text),
-                    icon: const Icon(
-                      Icons.arrow_upward_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.accentGreen,
-                      padding: const EdgeInsets.all(8),
-                    ),
-                  )
-                : Icon(
-                    Icons.auto_awesome,
-                    size: 20,
-                    color: AppColors.accentGreen.withOpacity(0.4),
-                  ),
-            ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSendButton() {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: _isComposing ? 1.0 : 0.4,
+      child: Container(
+        height: 40,
+        width: 40,
+        decoration: BoxDecoration(
+          color: AppColors.accentGreen,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accentGreen.withOpacity(0.2),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: IconButton(
+            onPressed: () => _handleSubmitted(_controller.text),
+            icon: const Icon(Icons.arrow_upward_rounded),
+            color: Colors.white,
+            iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: 'Send',
           ),
         ),
       ),
