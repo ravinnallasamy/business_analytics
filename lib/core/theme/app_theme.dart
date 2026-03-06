@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:business_analytics_chat/core/theme/app_colors.dart';
 
 class AppTheme {
@@ -13,82 +14,73 @@ class AppTheme {
     TextTheme buildTextTheme(Brightness brightness) {
       final Color textColor = brightness == Brightness.light ? AppColors.textPrimary : Colors.white;
       
-      return TextTheme(
-        // Metric numbers (22-26 Bold)
-        displayLarge: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 26 * scale,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-        ),
-        displayMedium: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 24 * scale,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-        ),
-        displaySmall: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 22 * scale,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-        ),
-        // App titles (20 SemiBold)
-        headlineLarge: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 20 * scale,
-          fontWeight: FontWeight.w600,
-          color: textColor,
-        ),
-        // Section headings (18 SemiBold)
-        headlineMedium: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 18 * scale,
-          fontWeight: FontWeight.w600,
-          color: textColor,
-        ),
-        // Body text (15 Regular)
-        bodyLarge: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 15 * scale,
-          fontWeight: FontWeight.w400,
-          color: textColor,
-          height: 1.5,
-        ),
-        // Table text / Labels (14 Medium for headers, but default bodyMedium for rows)
-        bodyMedium: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 14 * scale,
-          fontWeight: FontWeight.w400,
-          color: textColor,
-          height: 1.4,
-        ),
-        // Secondary text (13 Regular)
-        bodySmall: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 13 * scale,
-          fontWeight: FontWeight.w400,
-          color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
-          height: 1.4,
-        ),
-        // UI Controls / Labels (14 Medium)
-        labelLarge: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 14 * scale,
-          fontWeight: FontWeight.w500,
-          color: textColor,
-        ),
-        labelMedium: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 13 * scale,
-          fontWeight: FontWeight.w500,
-          color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
-        ),
-        labelSmall: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 12 * scale,
-          fontWeight: FontWeight.w500,
-          color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
+      return GoogleFonts.interTextTheme(
+        TextTheme(
+          // Metric numbers (22-26 Bold)
+          displayLarge: TextStyle(
+            fontSize: 26 * scale,
+            fontWeight: FontWeight.w700,
+            color: textColor,
+          ),
+          displayMedium: TextStyle(
+            fontSize: 24 * scale,
+            fontWeight: FontWeight.w700,
+            color: textColor,
+          ),
+          displaySmall: TextStyle(
+            fontSize: 22 * scale,
+            fontWeight: FontWeight.w700,
+            color: textColor,
+          ),
+          // App titles (20 SemiBold)
+          headlineLarge: TextStyle(
+            fontSize: 20 * scale,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+          // Section headings (18 SemiBold)
+          headlineMedium: TextStyle(
+            fontSize: 18 * scale,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+          // Body text (15 Regular)
+          bodyLarge: TextStyle(
+            fontSize: 15 * scale,
+            fontWeight: FontWeight.w400,
+            color: textColor,
+            height: 1.5,
+          ),
+          // Table text / Labels (14 Medium for headers, but default bodyMedium for rows)
+          bodyMedium: TextStyle(
+            fontSize: 14 * scale,
+            fontWeight: FontWeight.w400,
+            color: textColor,
+            height: 1.4,
+          ),
+          // Secondary text (13 Regular)
+          bodySmall: TextStyle(
+            fontSize: 13 * scale,
+            fontWeight: FontWeight.w400,
+            color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
+            height: 1.4,
+          ),
+          // UI Controls / Labels (14 Medium)
+          labelLarge: TextStyle(
+            fontSize: 14 * scale,
+            fontWeight: FontWeight.w500,
+            color: textColor,
+          ),
+          labelMedium: TextStyle(
+            fontSize: 13 * scale,
+            fontWeight: FontWeight.w500,
+            color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
+          ),
+          labelSmall: TextStyle(
+            fontSize: 12 * scale,
+            fontWeight: FontWeight.w500,
+            color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
+          ),
         ),
       );
     }
@@ -112,7 +104,6 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      fontFamily: 'Inter',
       scaffoldBackgroundColor: AppColors.primaryBackground,
       colorScheme: colorScheme,
       textTheme: buildTextTheme(brightness),
@@ -131,7 +122,6 @@ class AppTheme {
         centerTitle: false,
         iconTheme: const IconThemeData(color: AppColors.accentGreen),
         titleTextStyle: TextStyle(
-          fontFamily: 'Inter',
           color: AppColors.textPrimary,
           fontSize: 20 * scale,
           fontWeight: FontWeight.w600,
@@ -152,13 +142,11 @@ class AppTheme {
       dataTableTheme: DataTableThemeData(
         headingRowColor: const WidgetStatePropertyAll(AppColors.accentGold),
         headingTextStyle: TextStyle(
-          fontFamily: 'Inter',
           color: Colors.white,
           fontWeight: FontWeight.w600, // SemiBold for table headers
           fontSize: 14 * scale,
         ),
         dataTextStyle: TextStyle(
-          fontFamily: 'Inter',
           color: AppColors.textPrimary,
           fontSize: 14 * scale,
           fontWeight: FontWeight.w400, // Regular for body
@@ -204,7 +192,6 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           textStyle: TextStyle(
-            fontFamily: 'Inter',
             fontWeight: FontWeight.w500, // Medium for UI controls
             fontSize: 14 * scale,
           ),

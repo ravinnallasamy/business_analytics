@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
 import 'package:business_analytics_chat/modules/chat/state/chat_state.dart';
 import 'package:business_analytics_chat/modules/auth/state/auth_notifier.dart';
 import 'package:business_analytics_chat/core/theme/app_colors.dart';
@@ -45,9 +45,8 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
       userName = data?['name'] ?? data?['username'] ?? data?['first_name'];
     }
     
-    if (userEmail != null) {
-      _toController.text = userEmail;
-    }
+    // Default TO address as requested
+    _toController.text = "naga@fuzionest.com";
 
     // Attempt to find the question that generated this report
     String? question;
@@ -89,9 +88,14 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
     }
 
     if (subject.isEmpty) {
-      subject = widget.message.content.split('\n').first;
-      if (subject.length > 50) {
-        subject = '${subject.substring(0, 47)}...';
+      final summary = widget.message.content.trim();
+      if (summary.startsWith('Hello') || summary.startsWith('Dear')) {
+        subject = 'Analytics Insights Report';
+      } else {
+        subject = summary.split('\n').first;
+        if (subject.length > 50) {
+          subject = '${subject.substring(0, 47)}...';
+        }
       }
     }
     _subjectController.text = 'Analytics Report: $subject';
@@ -135,7 +139,7 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
 
     // 4. Closing block
     _blockControllers.add(TextEditingController(
-      text: '\nWe hope this analysis proves valuable for your business decisions. Please reach out if you require further assistance or deeper insights.\n\nBest regards,\n\nDrishti AI Team\ndrishti@orientbell.com\nOrientbell Tiles'
+      text: '\nWe hope this analysis proves valuable for your business decisions. Please reach out if you require further assistance or deeper insights.\n\nBest regards,'
     ));
   }
 
@@ -243,6 +247,75 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
     return buffer.toString();
   }
 
+  String _formatToHtml(String text) {
+    return text.split('\n').map((line) {
+      if (line.trim().isEmpty) return '<br/>';
+      return '<p style="margin: 0 0 10px 0;">$line</p>';
+    }).join('');
+  }
+
+  String _processTableToHtml(Map<String, dynamic> data, String tableStyle, String thStyle, String tdStyle) {
+    final buffer = StringBuffer();
+    final title = data['title'] as String? ?? 'Data Table';
+    final headers = List<String>.from(data['headers'] ?? data['columns'] ?? []);
+    final rows = List<dynamic>.from(data['rows'] ?? []);
+
+    if (title.isNotEmpty) buffer.writeln('<h4 style="margin-bottom: 5px; color: #1a1a1a;">📊 $title</h4>');
+    
+    buffer.writeln('<table style="$tableStyle">');
+    
+    // Headers
+    if (headers.isNotEmpty) {
+      buffer.writeln('<thead><tr>');
+      for (var h in headers) {
+        buffer.writeln('<th style="$thStyle">$h</th>');
+      }
+      buffer.writeln('</tr></thead>');
+    }
+
+    // Rows
+    buffer.writeln('<tbody>');
+    for (var row in rows) {
+      buffer.writeln('<tr>');
+      if (row is List) {
+        for (var cell in row) {
+          buffer.writeln('<td style="$tdStyle">${cell.toString()}</td>');
+        }
+      } else if (row is Map) {
+        for (var h in headers) {
+          buffer.writeln('<td style="$tdStyle">${row[h]?.toString() ?? ""}</td>');
+        }
+      }
+      buffer.writeln('</tr>');
+    }
+    buffer.writeln('</tbody></table>');
+    
+    return buffer.toString();
+  }
+
+  String _processMetricsToHtml(Map<String, dynamic> data) {
+    final buffer = StringBuffer();
+    final metrics = (data['metrics'] as List? ?? []).cast<Map<String, dynamic>>();
+
+    buffer.writeln('<div style="margin: 20px 0; padding: 15px; background-color: #fdfaf0; border: 1px solid #D4AF37; border-radius: 8px;">');
+    buffer.writeln('<h4 style="margin: 0 0 15px 0; color: #D4AF37; text-transform: uppercase;">KEY PERFORMANCE INDICATORS</h4>');
+    
+    buffer.writeln('<div style="display: flex; flex-wrap: wrap; gap: 20px;">');
+    for (var m in metrics) {
+      final label = m['label']?.toString().toUpperCase() ?? '';
+      final value = m['value']?.toString() ?? '';
+      final change = m['change'] != null ? " (${m['change']})" : "";
+      
+      buffer.writeln('<div style="margin-bottom: 10px; min-width: 200px;">'
+                     '<span style="font-weight: bold; color: #666; font-size: 11px;">$label</span><br/>'
+                     '<span style="font-size: 18px; color: #1a1a1a; font-weight: bold;">$value</span>'
+                     '<span style="color: ${m['change']?.toString().contains('-') == true ? '#d32f2f' : '#2e7d32'}; font-size: 12px; margin-left: 5px;">$change</span>'
+                     '</div>');
+    }
+    buffer.writeln('</div></div>');
+    return buffer.toString();
+  }
+
   @override
   void dispose() {
     _fromController.dispose();
@@ -257,83 +330,110 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
 
 
   void _sendEmail() async {
-    final List<String> bodyParts = [];
+    setState(() => _isLoading = true);
     
-    // 1. Initial greeting/header block
-    if (_blockControllers.isNotEmpty) {
-      bodyParts.add(_blockControllers[0].text);
-    }
-    
-    // 2. Additional user comments (inserted after the header)
-    if (_commentsController.text.trim().isNotEmpty) {
-      bodyParts.add("USER COMMENTS:\n${_commentsController.text.trim()}\n${'-' * 20}");
-    }
-    
-    int controllerIndex = 1;
-    
-    // 3. Executive summary
-    if (widget.message.content.trim().isNotEmpty && controllerIndex < _blockControllers.length) {
-      bodyParts.add(_blockControllers[controllerIndex++].text);
-    }
-    
-    // 4. Middle blocks (text, tables, charts)
-    for (var block in widget.message.blocks) {
-      if (block.type == 'table') {
-        bodyParts.add(_processTableData(block.data));
-        bodyParts.add('\n'); // Add some spacing after table
-      } else if (block.type == 'chart') {
-        bodyParts.add(_processChartData(block.data));
-        bodyParts.add('\n'); // Add some spacing after chart
-      } else if (_shouldBlockHaveTextArea(block)) {
-        if (controllerIndex < _blockControllers.length) {
-          bodyParts.add(_blockControllers[controllerIndex++].text);
+    try {
+      final List<String> htmlParts = [];
+      
+      // CSS Styling for formal appearance
+      const String tableStyle = 'border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 14px; font-family: sans-serif;';
+      const String thStyle = 'background-color: #D4AF37; color: white; text-align: left; padding: 12px; border: 1px solid #ddd;';
+      const String tdStyle = 'padding: 10px; border: 1px solid #ddd; text-align: left;';
+      
+      htmlParts.add('<div style="font-family: Arial, sans-serif; line-height: 1.5; color: #1a1a1a; max-width: 800px; margin: 0 auto;">');
+      
+      // 1. Initial greeting/header block
+      if (_blockControllers.isNotEmpty) {
+        htmlParts.add(_formatToHtml(_blockControllers[0].text));
+      }
+      
+      // 2. Additional user comments (inserted after the header)
+      if (_commentsController.text.trim().isNotEmpty) {
+        htmlParts.add('<div style="background-color: #f9f9f9; border-left: 4px solid #2D6A4F; padding: 12px; margin: 20px 0;">'
+                      '<h4 style="margin-top: 0; color: #2D6A4F;">USER COMMENTS</h4>'
+                      '${_formatToHtml(_commentsController.text.trim())}'
+                      '</div>');
+      }
+      
+      int controllerIndex = 1;
+      
+      // 3. Executive summary
+      if (widget.message.content.trim().isNotEmpty && controllerIndex < _blockControllers.length) {
+        htmlParts.add('<h3>EXECUTIVE SUMMARY</h3>');
+        htmlParts.add('<div style="margin-bottom: 20px;">${_formatToHtml(widget.message.content.trim())}</div>');
+        controllerIndex++; // Skip the controller used for summary view as we rebuild it here
+      }
+      
+      // 4. Middle blocks (text, tables, charts)
+      for (var block in widget.message.blocks) {
+        if (block.type == 'table') {
+          htmlParts.add(_processTableToHtml(block.data, tableStyle, thStyle, tdStyle));
+        } else if (block.type == 'metrics') {
+          htmlParts.add(_processMetricsToHtml(block.data));
+          controllerIndex++; 
+        } else if (block.type == 'chart') {
+          final title = block.data['title'] as String? ?? 'Analytics Chart';
+          htmlParts.add('<div style="margin: 20px 0; padding: 15px; border: 1px dashed #D4AF37; background-color: #fffcf5; text-align: center; border-radius: 8px;">'
+                        '<h4 style="margin: 0; color: #D4AF37;">📈 CHART: $title</h4>'
+                        '<p style="font-size: 12px; color: #888; margin: 5px 0 0 0;">(Detailed visual visualization is available in the Drishti Dashboard)</p>'
+                        '</div>');
+        } else if (_shouldBlockHaveTextArea(block)) {
+          if (controllerIndex < _blockControllers.length) {
+            htmlParts.add('<div style="margin-bottom: 20px;">' + _formatToHtml(_blockControllers[controllerIndex++].text) + '</div>');
+          }
         }
       }
-    }
-    
-    // 5. Closing block
-    if (controllerIndex < _blockControllers.length) {
-      bodyParts.add(_blockControllers[controllerIndex].text);
-    }
+      
+      // 5. Closing block
+      if (controllerIndex < _blockControllers.length) {
+        htmlParts.add('<div style="margin-top: 30px;">' + _formatToHtml(_blockControllers[controllerIndex].text) + '</div>');
+      }
 
-    final fullBody = bodyParts.join('\n\n');
-    final subject = _subjectController.text;
-    final to = _toController.text;
+      htmlParts.add('</div>');
 
-    final Uri emailLaunchUri = Uri(
-      scheme: 'mailto',
-      path: to,
-      query: _encodeQueryParameters(<String, String>{
-        'subject': subject,
-        'body': fullBody,
-      }),
-    );
+      final htmlContent = htmlParts.join('');
+      final subject = _subjectController.text;
+      final to = _toController.text;
 
-    try {
-      if (await canLaunchUrl(emailLaunchUri)) {
-        await launchUrl(emailLaunchUri);
-      } else {
-        if (mounted) {
+      final dio = Dio();
+      final response = await dio.post(
+        'https://chatbot.fuzionest.com/api/send-email',
+        data: {
+          "to": to,
+          "subject": subject,
+          "html": htmlContent,
+        },
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (response.statusCode == 200 || response.statusCode == 201) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not launch email app'), behavior: SnackBarBehavior.floating),
+            const SnackBar(
+              content: Text('Email sent successfully!'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
           );
+          Navigator.pop(context);
+        } else {
+          throw Exception('Failed to send email: ${response.statusCode}');
         }
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), behavior: SnackBarBehavior.floating),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
   }
 
-  String _encodeQueryParameters(Map<String, String> params) {
-    return params.entries
-        .map((MapEntry<String, String> e) =>
-            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-        .join('&');
-  }
 
   @override
   Widget build(BuildContext context) {
