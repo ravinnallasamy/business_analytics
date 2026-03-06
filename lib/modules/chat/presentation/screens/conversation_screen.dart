@@ -92,7 +92,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
 
 
-  double _lastScrollPosition = 0;
+  final double _lastScrollPosition = 0;
 
   @override
   Widget build(BuildContext context) {

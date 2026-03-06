@@ -228,7 +228,9 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
     buffer.writeln("📈 $title\n${"-" * (title.length + 3)}");
     final chartData = data['data'] as List?;
     if (chartData != null) {
-      for (var point in chartData) buffer.writeln("• $point");
+      for (var point in chartData) {
+        buffer.writeln("• $point");
+      }
     }
     return buffer.toString();
   }
@@ -238,7 +240,9 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
     final items = List<String>.from(data['items'] ?? data['suggestions'] ?? []);
     if (items.isEmpty) return "";
     buffer.writeln("Suggested follow-ups (optional):\n${"-" * 26}");
-    for (var item in items) buffer.writeln("• $item");
+    for (var item in items) {
+      buffer.writeln("• $item");
+    }
     return buffer.toString();
   }
 

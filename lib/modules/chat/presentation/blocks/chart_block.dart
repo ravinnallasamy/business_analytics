@@ -250,8 +250,9 @@ class ChartBlock extends StatelessWidget {
       for (final key in keys) {
         final raw = item[key];
         double val = 0;
-        if (raw is num) val = raw.toDouble();
-        else if (raw is String) val = double.tryParse(raw) ?? 0;
+        if (raw is num) {
+          val = raw.toDouble();
+        } else if (raw is String) val = double.tryParse(raw) ?? 0;
         if (val > max) max = val;
       }
     }
@@ -273,8 +274,9 @@ class ChartBlock extends StatelessWidget {
   }) {
     // Dynamic bar width based on data count
     double barWidth = 12;
-    if (chartData.length <= 6) barWidth = 24;
-    else if (chartData.length <= 12) barWidth = 18;
+    if (chartData.length <= 6) {
+      barWidth = 24;
+    } else if (chartData.length <= 12) barWidth = 18;
     
     // Compute min bar width so chart is scrollable when crowded
     final minBarGroupWidth = (yKeys.length * (barWidth + 4)) + 16.0;
@@ -383,8 +385,9 @@ class ChartBlock extends StatelessWidget {
           for (int i = 0; i < yKeys.length; i++) {
             final rawY = item[yKeys[i]];
             double yVal = 0;
-            if (rawY is num) yVal = rawY.toDouble();
-            else if (rawY is String) yVal = double.tryParse(rawY) ?? 0;
+            if (rawY is num) {
+              yVal = rawY.toDouble();
+            } else if (rawY is String) yVal = double.tryParse(rawY) ?? 0;
             rods.add(BarChartRodData(
               toY: yVal,
               color: colors[i % colors.length],
@@ -516,8 +519,9 @@ class ChartBlock extends StatelessWidget {
             final item = entry.value;
             final rawY = item[key];
             double yVal = 0;
-            if (rawY is num) yVal = rawY.toDouble();
-            else if (rawY is String) yVal = double.tryParse(rawY) ?? 0;
+            if (rawY is num) {
+              yVal = rawY.toDouble();
+            } else if (rawY is String) yVal = double.tryParse(rawY) ?? 0;
             return FlSpot(entry.key.toDouble(), yVal);
           }).toList();
 

@@ -310,7 +310,7 @@ class _TableBlockState extends State<TableBlock> {
                     controller: _horizontalScrollController,
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Container(
+                    child: SizedBox(
                        width: tableWidth,
                        child: Table(
                          columnWidths: tableColumnWidths,

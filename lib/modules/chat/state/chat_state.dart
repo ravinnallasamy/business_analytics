@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:business_analytics_chat/modules/home_widget/home_widget_service.dart';
 import 'package:business_analytics_chat/modules/chat/data/conversation_repository.dart'; // Use ConversationRepository
-import 'package:business_analytics_chat/modules/auth/state/auth_notifier.dart';
 import 'package:business_analytics_chat/core/config/api_config.dart';
 import 'package:dio/dio.dart'; // Needed for provider
 

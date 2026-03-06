@@ -81,7 +81,7 @@ class MessageView extends StatelessWidget {
     final contentBlocks = message.blocks.where((b) => b.type != 'suggestions').toList();
     final suggestionBlocks = message.blocks.where((b) => b.type == 'suggestions').toList();
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/modules/chat/state/chat_state.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:business_analytics_chat/modules/auth/state/auth_notifier.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

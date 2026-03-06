@@ -311,7 +311,7 @@ class _CreateScheduleDialogState extends ConsumerState<CreateScheduleDialog> {
                      
                      _buildLabel('Report Type'),
                      DropdownButtonFormField<String>(
-                       value: _reportType,
+                       initialValue: _reportType,
                        decoration: _inputDecoration('Select report type'),
                        items: ['Sales Report', 'Visit Plan', 'Dealer Outstanding', 'Inventory Summary']
                            .map((type) => DropdownMenuItem(value: type, child: Text(type)))
@@ -323,7 +323,7 @@ class _CreateScheduleDialogState extends ConsumerState<CreateScheduleDialog> {
                      if (isMobile) ...[
                        _buildLabel('Frequency'),
                        DropdownButtonFormField<ScheduleFrequency>(
-                         value: _frequency,
+                         initialValue: _frequency,
                          decoration: _inputDecoration('Select frequency'),
                          items: ScheduleFrequency.values
                              .map((f) => DropdownMenuItem(value: f, child: Text(frequencyToString(f))))
@@ -361,7 +361,7 @@ class _CreateScheduleDialogState extends ConsumerState<CreateScheduleDialog> {
                                children: [
                                  _buildLabel('Frequency'),
                                  DropdownButtonFormField<ScheduleFrequency>(
-                                   value: _frequency,
+                                   initialValue: _frequency,
                                    decoration: _inputDecoration('Select frequency'),
                                    items: ScheduleFrequency.values
                                        .map((f) => DropdownMenuItem(value: f, child: Text(frequencyToString(f))))
@@ -422,8 +422,11 @@ class _CreateScheduleDialogState extends ConsumerState<CreateScheduleDialog> {
                            selected: selected,
                            onSelected: (val) {
                              setState(() {
-                               if (val) _destinations.add(d);
-                               else _destinations.remove(d);
+                               if (val) {
+                                 _destinations.add(d);
+                               } else {
+                                 _destinations.remove(d);
+                               }
                              });
                            },
                            selectedColor: AppColors.accentGreen.withOpacity(0.12),
@@ -456,10 +459,10 @@ class _CreateScheduleDialogState extends ConsumerState<CreateScheduleDialog> {
                  children: [
                    TextButton(
                      onPressed: () => Navigator.pop(context),
-                     child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
                      style: TextButton.styleFrom(
                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                      ),
+                     child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
                    ),
                    const SizedBox(width: 16),
                    ElevatedButton(
@@ -479,13 +482,13 @@ class _CreateScheduleDialogState extends ConsumerState<CreateScheduleDialog> {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule created (Mock)')));
                      },
-                     child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                      style: ElevatedButton.styleFrom(
                        backgroundColor: AppColors.accentGreen,
                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                        elevation: 0,
                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                      ),
+                     child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                    ),
                  ],
                ),

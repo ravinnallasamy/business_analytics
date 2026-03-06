@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/modules/chat/state/chat_state.dart';
-import 'package:business_analytics_chat/core/constants/ui_constants.dart';
 import 'package:business_analytics_chat/core/theme/app_colors.dart';
 
 class SuggestionsBlock extends ConsumerWidget {

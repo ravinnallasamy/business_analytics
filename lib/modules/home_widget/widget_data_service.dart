@@ -105,7 +105,7 @@ class WidgetDataService {
         String combinedText = summary;
         for (var block in blocks) {
           if (block is Map && block['type'] == 'text' && block['content'] != null) {
-            combinedText += " " + block['content'].toString();
+            combinedText += " ${block['content']}";
           }
         }
 
