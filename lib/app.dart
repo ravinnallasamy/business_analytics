@@ -11,8 +11,7 @@ class BusinessAnalyticsApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Drishti Analytics',
       theme: AppTheme.getTheme(context, Brightness.light),
-      darkTheme: AppTheme.getTheme(context, Brightness.dark),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       routerConfig: ref.watch(appRouterProvider),
       debugShowCheckedModeBanner: false,
     );
