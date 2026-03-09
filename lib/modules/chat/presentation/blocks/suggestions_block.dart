@@ -22,7 +22,20 @@ class SuggestionsBlock extends ConsumerWidget {
 
     final rawItems =
         data['items'] ?? data['suggestions'] ?? data['actions'] ?? [];
-    final items = (rawItems as List<dynamic>).map((e) => e.toString()).toList();
+    
+    // Support both List<String> and List<Map<String, dynamic>>
+    final List<Map<String, String>> items = (rawItems as List<dynamic>).map((e) {
+      if (e is Map) {
+        return {
+          'text': (e['question'] ?? e['text'] ?? '').toString(),
+          'tool_id': (e['tool_id'] ?? '').toString(),
+        };
+      }
+      return {
+        'text': e.toString(),
+        'tool_id': '',
+      };
+    }).toList();
 
     if (items.isEmpty) return const SizedBox.shrink();
 
@@ -50,15 +63,17 @@ class SuggestionsBlock extends ConsumerWidget {
             child: Column(
               children: items.asMap().entries.map((entry) {
                 final index = entry.key;
-                final text = entry.value;
+                final item = entry.value;
                 final isLast = index == items.length - 1;
+                final text = item['text']!;
+                final toolId = item['tool_id']!;
 
                 return Column(
                   children: [
                     _SuggestionRow(
                       text: text,
                       onTap: () =>
-                          ref.read(chatProvider.notifier).sendMessage(text),
+                          ref.read(chatInputProvider.notifier).state = text,
                     ),
                     if (!isLast)
                       const Divider(

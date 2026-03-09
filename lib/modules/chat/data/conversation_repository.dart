@@ -220,11 +220,12 @@ class ConversationRepository {
   Future<Map<String, dynamic>> sendQuestion({
     required String question,
     String? conversationId, // null for new conversation
+    String? toolId,
     bool enableCache = true,
   }) async {
     try {
       debugPrint(
-          '🌐 ConversationRepository: Sending question: "$question" (ConversationID: $conversationId)');
+          '🌐 ConversationRepository: Sending question: "$question" (ToolID: $toolId, ConversationID: $conversationId)');
       // Get token from secure storage
       final token = await _storage.read(key: 'auth_token');
 
@@ -236,6 +237,7 @@ class ConversationRepository {
       final requestBody = {
         'question': question,
         'conversation_id': conversationId, // null for new conversation
+        'tool_id': toolId,
         'enable_cache': enableCache,
         'streamEnabled': false,
       };

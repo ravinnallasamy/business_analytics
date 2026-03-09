@@ -28,7 +28,7 @@ class _TableBlockState extends State<TableBlock> {
   @override
   void initState() {
     super.initState();
-    final rawColumns = widget.data['headers'] ?? widget.data['columns'];
+    final rawColumns = widget.data['headers'] ?? widget.data['columns'] ?? widget.data['data']?[0]?.keys?.toList();
     _allColumns = (rawColumns is List)
         ? rawColumns.map((e) => e.toString()).toList()
         : <String>[];
@@ -155,7 +155,7 @@ class _TableBlockState extends State<TableBlock> {
   @override
   Widget build(BuildContext context) {
     final title = widget.data['title'] as String? ?? '';
-    final rawRows = (widget.data['rows'] as List<dynamic>? ?? []);
+    final rawRows = (widget.data['rows'] ?? widget.data['data'] ?? []) as List<dynamic>;
 
     if (_allColumns.isEmpty) return const SizedBox.shrink();
 
@@ -164,10 +164,18 @@ class _TableBlockState extends State<TableBlock> {
 
     final List<List<dynamic>> displayRows = [];
     for (var row in rawRows) {
+      // Support both List and Map row formats
+      List<dynamic> rowData = [];
       if (row is List) {
+        rowData = row;
+      } else if (row is Map) {
+        rowData = _allColumns.map((col) => row[col] ?? '').toList();
+      }
+
+      if (rowData.isNotEmpty) {
         bool matches = _searchQuery.isEmpty;
         if (!matches) {
-          for (var item in row) {
+          for (var item in rowData) {
             if (item.toString().toLowerCase().contains(_searchQuery)) {
               matches = true;
               break;
@@ -179,7 +187,8 @@ class _TableBlockState extends State<TableBlock> {
           final List<dynamic> filteredRow = [];
           for (int i = 0; i < _allColumns.length; i++) {
             if (_visibleColumns.contains(_allColumns[i])) {
-              filteredRow.add(i < row.length ? row[i] : '');
+              // Map index correctly from rowData which matches _allColumns
+              filteredRow.add(i < rowData.length ? rowData[i] : '');
             }
           }
           displayRows.add(filteredRow);

@@ -220,9 +220,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                             padding: EdgeInsets.only(
                                 top: isDesktop ? 24 : 60, bottom: 40),
                             child: _NewChatWelcome(onSuggestionTap: (question) {
-                              ref
-                                  .read(chatProvider.notifier)
-                                  .sendMessage(question);
+                              ref.read(chatInputProvider.notifier).state = question;
                             }),
                           ),
               ),

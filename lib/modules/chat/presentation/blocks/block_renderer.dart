@@ -25,6 +25,8 @@ class BlockRenderer extends StatelessWidget {
         return ChartBlock(data: block.data);
       case 'suggestions':
         return SuggestionsBlock(data: block.data, messageId: messageId);
+      case 'html':
+        return const SizedBox.shrink(); // Silently ignore HTML blocks for now
       default:
         return Text('Unknown block type: ${block.type}');
     }

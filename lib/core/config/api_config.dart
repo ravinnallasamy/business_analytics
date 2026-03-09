@@ -89,6 +89,12 @@ class ApiConfig {
       '$_chatbotBase/api/conversations';
 
   // ============================================================================
+  // API 6: AUTO-SUGGEST
+  // ============================================================================
+  /// GET /api/v1/cache/suggest?q=...&limit=...
+  static String get suggestEndpoint => '$_apiChatbotBase/api/v1/cache/suggest';
+
+  // ============================================================================
   // TIMEOUTS
   // ============================================================================
   static const Duration connectTimeout = Duration(seconds: 15);

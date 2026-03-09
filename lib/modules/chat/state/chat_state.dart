@@ -400,8 +400,8 @@ class ChatNotifier extends Notifier<ChatState> {
     );
   }
 
-  Future<void> sendMessage(String content) async {
-    debugPrint('📤 ChatNotifier: Sending message: "$content"');
+  Future<void> sendMessage(String content, {String? toolId}) async {
+    debugPrint('📤 ChatNotifier: Sending message: "$content" (ToolId: $toolId)');
     // 1. Optimistic Update (User Message)
     final tempId = DateTime.now().toString();
     String? currentId = state.activeConversationId;
@@ -459,6 +459,7 @@ class ChatNotifier extends Notifier<ChatState> {
       final response = await _repository.sendQuestion(
         question: content,
         conversationId: apiConversationId,
+        toolId: toolId,
       );
 
       // 3. Handle Response
@@ -696,6 +697,8 @@ class ChatNotifier extends Notifier<ChatState> {
     }
   }
 }
+
+final chatInputProvider = StateProvider<String>((ref) => '');
 
 final chatProvider = NotifierProvider<ChatNotifier, ChatState>(ChatNotifier.new);
 

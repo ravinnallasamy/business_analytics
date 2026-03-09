@@ -46,7 +46,7 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
     }
     
     // Default TO address as requested
-    _toController.text = "naga@fuzionest.com";
+    _toController.text = "ravinit001@gmail.com";
 
     // Attempt to find the question that generated this report
     String? question;
@@ -104,40 +104,35 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
   void _generateBlocks(String? userName, String? question) {
     _blockControllers.clear();
     
-    // 1. Initial greeting block with formal header
+    // 0. Header Controller (Greeting, Date, Subject, Query)
     String greeting = userName != null ? 'Dear $userName,' : 'Dear Customer,';
     String dateStr = "${DateTime.now().day} ${_getMonth(DateTime.now().month)} ${DateTime.now().year}";
-    
     String headerText = '$greeting\n\nDate: $dateStr\nSubject: ${_subjectController.text}';
     if (question != null && question.isNotEmpty) {
       headerText += '\n\nQUERY: "$question"';
     }
-    
     headerText += '\n\nPlease find the detailed business analytics report prepared by Drishti AI below. This report provides key insights and metrics based on your latest data queries.\n';
-
     _blockControllers.add(TextEditingController(text: headerText));
 
-    // 2. Executive Summary
-    if (widget.message.content.trim().isNotEmpty) {
-      _blockControllers.add(TextEditingController(
-        text: 'EXECUTIVE SUMMARY\n${'=' * 17}\n${widget.message.content.trim()}\n'
-      ));
-    }
+    // 1. Executive Summary Controller
+    _blockControllers.add(TextEditingController(
+      text: 'EXECUTIVE SUMMARY\n${'=' * 17}\n${widget.message.content.trim()}\n'
+    ));
 
-    // 3. Middle content (text, metrics)
+    // 2+. Middle content controllers mapping to message blocks
     for (var block in widget.message.blocks) {
       if (_shouldBlockHaveTextArea(block)) {
         final content = _getRawBlockContent(block).trim();
+        if (content.isEmpty) continue;
+        
         String header = '';
         if (block.type == 'metrics') header = 'KEY PERFORMANCE INDICATORS\n${'-' * 26}\n';
         
-        _blockControllers.add(TextEditingController(
-          text: '$header$content'
-        ));
+        _blockControllers.add(TextEditingController(text: '$header$content'));
       }
     }
 
-    // 4. Closing block
+    // Last: Closing block controller
     _blockControllers.add(TextEditingController(
       text: '\nWe hope this analysis proves valuable for your business decisions. Please reach out if you require further assistance or deeper insights.\n\nBest regards,'
     ));
@@ -155,14 +150,15 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
                                widget.message.content.trim().contains(content);
       if (isAlreadyInSummary) return false;
 
-      // 2. Skip if it contains a markdown table (AI redundant output)
-      if (content.contains('|') && content.contains('---')) return false;
+      // 2. Allow if it contains a table - we will format it in _formatToHtml
+      // Previously skipped to avoid redundancy, but now we ensure it's rendered correctly.
+      if (content.contains('|') && content.contains('---')) return true;
 
-      // 3. Skip if it looks like a table header/placeholder (e.g. "📊 DATA TABLE")
+      // 3. Skip if it looks like a simple table title/placeholder
       final upperContent = content.toUpperCase();
       if ((upperContent.contains('TABLE') || upperContent.contains('CHART')) && 
-          (content.contains('📊') || content.contains('📈') || content.contains('---') || content.contains('===')) &&
-          content.length < 150) {
+          (content.contains('📊') || content.contains('📈') || content.contains('---')) &&
+          content.length < 100) {
         return false;
       }
     }
@@ -230,14 +226,158 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
   String _processChartData(Map<String, dynamic> data) {
     final buffer = StringBuffer();
     final title = data['title'] as String? ?? 'Analytics Chart';
-    buffer.writeln("📈 $title\n${"-" * (title.length + 3)}");
-    final chartData = data['data'] as List?;
-    if (chartData != null) {
-      for (var point in chartData) {
+    buffer.writeln("📈 Chart: $title");
+    
+    final rawItems = data['data'] ?? data['items'] ?? data['rows'] ?? data['chart_data'] ?? data['chartData'];
+    if (rawItems is List) {
+      for (var point in rawItems) {
         buffer.writeln("• $point");
       }
     }
     return buffer.toString();
+  }
+
+  String? _getChartUrl(Map<String, dynamic> data) {
+    try {
+      debugPrint('📊 _getChartUrl: Processing block data: $data');
+      final type = (data['chart_type'] ?? data['chartType'] ?? 'bar').toString().toLowerCase();
+      final List<String> labels = [];
+      final List<Map<String, dynamic>> datasetsConfig = [];
+      
+      // NEW: Support for Axis-based structure (x_axis and y_axis)
+      if (data.containsKey('x_axis') && data.containsKey('y_axis')) {
+        final xAxis = data['x_axis'] as Map<String, dynamic>;
+        final yAxis = data['y_axis'] as Map<String, dynamic>;
+        
+        final xData = xAxis['data'] as List?;
+        if (xData != null) {
+          labels.addAll(xData.map((e) => "'${e.toString().replaceAll("'", "\\'")}'"));
+        }
+        
+        final yDatasets = yAxis['datasets'] as List?;
+        if (yDatasets != null) {
+          final List<String> colors = ['rgba(45, 106, 79, 0.8)', 'rgba(255, 192, 0, 0.8)', 'rgba(0, 121, 107, 0.8)', 'rgba(211, 47, 47, 0.8)'];
+          int colorIdx = 0;
+          
+          for (var ds in yDatasets) {
+            if (ds is Map) {
+              final dsLabel = (ds['label'] ?? 'Series').toString().toUpperCase();
+              final dsValues = ds['data'] as List?;
+              if (dsValues != null) {
+                final color = colors[colorIdx % colors.length];
+                datasetsConfig.add({
+                  'label': dsLabel,
+                  'backgroundColor': color,
+                  'borderColor': color,
+                  'borderWidth': 1,
+                  'data': dsValues
+                });
+                colorIdx++;
+              }
+            }
+          }
+        }
+      } 
+      // FALLBACK: Row-based orientation (the previous logic)
+      else {
+        dynamic rawItems = data['data'] ?? data['items'] ?? data['rows'] ?? data['chart_data'] ?? data['chartData'];
+        if (rawItems == null || rawItems is! List) {
+          if (data['series'] is List) rawItems = data['series'];
+          else if (data['points'] is List) rawItems = data['points'];
+        }
+
+        if (rawItems == null || rawItems is! List || (rawItems as List).isEmpty) {
+          // One final check: looking into any list
+          for (var value in data.values) {
+            if (value is List && value.isNotEmpty) { rawItems = value; break; }
+          }
+        }
+
+        if (rawItems != null && rawItems is List && (rawItems as List).isNotEmpty) {
+          final List<dynamic> items = rawItems;
+          final List<String> seriesKeys = [];
+          final Set<String> labelKeys = {'label', 'name', 'category', 'x', 'month', 'date', 'day', 'dealer', 'city', 'product', 'branch'};
+
+          bool isNumeric(dynamic v) => v is num || (v is String && double.tryParse(v) != null);
+
+          if (items.first is Map) {
+            final Map firstMap = items.first;
+            firstMap.forEach((k, v) {
+              if (isNumeric(v) && !labelKeys.contains(k.toString().toLowerCase())) seriesKeys.add(k.toString());
+            });
+            if (seriesKeys.isEmpty) {
+              for (var k in firstMap.keys) if (isNumeric(firstMap[k])) { seriesKeys.add(k.toString()); break; }
+            }
+          }
+
+          if (seriesKeys.isNotEmpty || items.first is List) {
+            final Map<String, List<num>> seriesData = {for (var k in seriesKeys) k: []};
+            for (var item in items) {
+              if (item is Map) {
+                String l = 'Point';
+                for (var lk in labelKeys) if (item.containsKey(lk)) { l = item[lk].toString().replaceAll("'", "\\'"); break; }
+                labels.add("'$l'");
+                for (var sk in seriesKeys) seriesData[sk]!.add(double.tryParse(item[sk].toString()) ?? 0.0);
+              } else if (item is List && item.length >= 2) {
+                labels.add("'${item[0].toString().replaceAll("'", "\\'")}'");
+                seriesData['Value'] = seriesData['Value'] ?? [];
+                seriesData['Value']!.add(double.tryParse(item[1].toString()) ?? 0.0);
+              }
+            }
+
+            final List<String> colors = ['rgba(45, 106, 79, 0.8)', 'rgba(255, 192, 0, 0.8)'];
+            int colorIdx = 0;
+            seriesData.forEach((key, vals) {
+              final color = colors[colorIdx % colors.length];
+              datasetsConfig.add({
+                'label': key.toUpperCase(),
+                'backgroundColor': color,
+                'borderColor': color,
+                'borderWidth': 1,
+                'data': vals
+              });
+              colorIdx++;
+            });
+          }
+        }
+      }
+
+      if (labels.isEmpty || datasetsConfig.isEmpty) {
+        debugPrint('⚠️ _getChartUrl: Labels or Datasets empty. Labels: ${labels.length}, Datasets: ${datasetsConfig.length}');
+        return null;
+      }
+
+      final List<String> datasetsJson = datasetsConfig.map((ds) => 
+        "{label:'${ds['label']}',backgroundColor:'${ds['backgroundColor']}',borderColor:'${ds['borderColor']}',borderWidth:1,data:[${ds['data'].join(',')}]}"
+      ).toList();
+
+      final chartConfig = "{type:'$type',data:{labels:[${labels.join(',')}],datasets:[${datasetsJson.join(',')}]},options:{plugins:{legend:{display:true}}}}";
+      final finalUrl = "https://quickchart.io/chart?c=${Uri.encodeComponent(chartConfig)}&w=600&h=300&v=2.9.4";
+      debugPrint('📊 _getChartUrl: Success! Generated URL: $finalUrl');
+      return finalUrl;
+    } catch (e) {
+      debugPrint('❌ _getChartUrl Error: $e');
+      return null;
+    }
+  }
+
+  String _processChartToHtml(Map<String, dynamic> data) {
+    final title = (data['title'] ?? data['label'] ?? 'Data Visualization').toString();
+    final url = _getChartUrl(data);
+    
+    if (url == null) return '';
+
+    return '''
+    <div style="margin: 30px 0; padding: 20px; border: 1px solid #f0f0f0; border-radius: 16px; background-color: #ffffff; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+      <h4 style="margin: 0 0 15px 0; color: #1a1a1a; font-family: Arial, sans-serif; font-size: 16px;">📊 $title</h4>
+      <div style="overflow: hidden; border-radius: 8px;">
+        <a href="$url" target="_blank">
+          <img src="$url" style="width: 100%; max-width: 500px;" alt="$title" />
+        </a>
+      </div>
+      <p style="margin: 12px 0 0 0; font-size: 11px; color: #999;">(Tap to enlarge visualization)</p>
+    </div>
+    ''';
   }
 
   String _processSuggestionsData(Map<String, dynamic> data) {
@@ -252,17 +392,130 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
   }
 
   String _formatToHtml(String text) {
-    return text.split('\n').map((line) {
-      if (line.trim().isEmpty) return '<br/>';
-      return '<p style="margin: 0 0 10px 0;">$line</p>';
-    }).join('');
+    if (text.isEmpty) return '';
+
+    // 1. Process Headings: ### Title (###) -> <h3 style="...">Title</h3>
+    // Use multi-line and more lenient pattern to catch headers correctly
+    String html = text.replaceAllMapped(RegExp(r'^\s*(#{1,6})\s+(.*?)\s*$', multiLine: true), (match) {
+      final level = match.group(1)!.length;
+      final fontSize = level == 1 ? '24px' : (level == 2 ? '20px' : '18px');
+      return '<h$level style="margin: 24px 0 12px 0; color: #2D6A4F; font-size: $fontSize; font-weight: bold; padding-bottom: 4px;">${match.group(2)}</h$level>';
+    });
+
+    // 2. Process Bold Highlights: **text** -> <strong>text</strong>
+    // Styled as high-premium highlights matching the image requirement
+    html = html.replaceAllMapped(RegExp(r'\*\*(.*?)\*\*'), (match) {
+      return '<strong style="font-weight: 600; color: #1a1a1a; background-color: #f5f5f5; padding: 1px 6px; border-radius: 4px; display: inline-block;">${match.group(1)}</strong>';
+    });
+    
+    // 3. Process Italics: *text* -> <em>text</em>
+    html = html.replaceAllMapped(RegExp(r'\*(.*?)\*'), (match) {
+      return '<em style="font-style: italic; color: #555;">${match.group(1)}</em>';
+    });
+
+    // 4. Process Horizontal Rules: --- or ===
+    html = html.replaceAll(RegExp(r'^\s*[\-\=]{3,}\s*$', multiLine: true), '<hr style="border: 0; border-top: 1px solid #eee; margin: 16px 0;"/>');
+
+    // 5. Process Lists: lines starting with * or - -> <li>
+    // Find blocks of list items and wrap them in <ul>
+    final listRegex = RegExp(r'^(\s*[\*\-]\s+.*(?:\n\s*[\*\-]\s+.*)*)', multiLine: true);
+    html = html.replaceAllMapped(listRegex, (match) {
+      final listContent = match.group(1)!;
+      final items = listContent.trim().split('\n');
+      final listItemsHtml = items.map((item) {
+        final content = item.replaceFirst(RegExp(r'^\s*[\*\-]\s+'), '').trim();
+        return '<li style="margin-bottom: 6px; padding-left: 4px;">$content</li>';
+      }).join('');
+      return '<ul style="margin: 12px 0; padding-left: 24px; list-style-type: disc;">$listItemsHtml</ul>';
+    });
+
+    // 6. Process Tables: Markdown style | h1 | h2 | -> <table>
+    // This is a simplified markdown table parser
+    final tableRegex = RegExp(r'((?:^\|.*\|$\n?)+)', multiLine: true);
+    html = html.replaceAllMapped(tableRegex, (match) {
+      final tableContent = match.group(1)!;
+      final lines = tableContent.trim().split('\n');
+      if (lines.length < 2) return tableContent;
+
+      final buffer = StringBuffer();
+      buffer.writeln('<table style="border-collapse: collapse; width: 100%; margin: 15px 0; font-size: 13px; border: 1px solid #eee;">');
+      
+      for (int i = 0; i < lines.length; i++) {
+        final line = lines[i];
+        if (line.contains('---|')) continue; // Skip separator line
+        
+        final cells = line.split('|').where((s) => s.trim().split('').isNotEmpty || s == '').toList();
+        // Remove first and last empty cells if they exist (from leading/trailing pipelines)
+        if (cells.isNotEmpty && cells.first.trim().isEmpty) cells.removeAt(0);
+        if (cells.isNotEmpty && cells.last.trim().isEmpty) cells.removeAt(cells.length - 1);
+
+        final tag = (i == 0) ? 'th' : 'td';
+        final style = (i == 0) 
+            ? 'background-color: #f8f8f8; font-weight: bold; padding: 10px; border: 1px solid #eee; text-align: left;'
+            : 'padding: 8px; border: 1px solid #eee; text-align: left;';
+            
+        buffer.writeln('<tr>');
+        for (var cell in cells) {
+          buffer.writeln('<$tag style="$style">${cell.trim()}</$tag>');
+        }
+        buffer.writeln('</tr>');
+      }
+      buffer.writeln('</table>');
+      return buffer.toString();
+    });
+
+    // 7. Final wrapping of paragraphs
+    final lines = html.split('\n');
+    final buffer = StringBuffer();
+    bool inList = false;
+    bool inTable = false;
+
+    for (var line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) {
+        if (!inList && !inTable) buffer.write('<div style="height: 12px;"></div>');
+        continue;
+      }
+
+      // If it's already a tag we shouldn't wrap (H1-6, UL, LI, HR, TABLE)
+      if (trimmed.startsWith('<h') || 
+          trimmed.startsWith('<ul') || 
+          trimmed.startsWith('<li') || 
+          trimmed.startsWith('</ul') || 
+          trimmed.startsWith('<hr') ||
+          trimmed.startsWith('<table') ||
+          trimmed.startsWith('<tr') ||
+          trimmed.startsWith('</table')) {
+        buffer.write(trimmed);
+        inList = trimmed.startsWith('<ul') || (trimmed.startsWith('<li') && inList);
+        if (trimmed.startsWith('</ul')) inList = false;
+        
+        if (trimmed.startsWith('<table')) inTable = true;
+        if (trimmed.startsWith('</table')) inTable = false;
+      } else {
+        if (inTable) {
+          buffer.write(trimmed);
+        } else {
+          buffer.write('<p style="margin: 0 0 12px 0; font-size: 14px; color: #333; line-height: 1.6;">$trimmed</p>');
+        }
+      }
+    }
+
+    return buffer.toString();
   }
 
   String _processTableToHtml(Map<String, dynamic> data, String tableStyle, String thStyle, String tdStyle) {
     final buffer = StringBuffer();
     final title = data['title'] as String? ?? 'Data Table';
-    final headers = List<String>.from(data['headers'] ?? data['columns'] ?? []);
-    final rows = List<dynamic>.from(data['rows'] ?? []);
+    
+    // Support multiple row keys
+    final rows = List<dynamic>.from(data['rows'] ?? data['data'] ?? data['items'] ?? []);
+    
+    // Support multiple header keys or auto-extract from Map rows
+    List<String> headers = List<String>.from(data['headers'] ?? data['columns'] ?? []);
+    if (headers.isEmpty && rows.isNotEmpty && rows.first is Map) {
+      headers = (rows.first as Map).keys.map((k) => k.toString()).toList();
+    }
 
     if (title.isNotEmpty) buffer.writeln('<h4 style="margin-bottom: 5px; color: #1a1a1a;">📊 $title</h4>');
     
@@ -339,12 +592,12 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
     try {
       final List<String> htmlParts = [];
       
-      // CSS Styling for formal appearance
-      const String tableStyle = 'border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 14px; font-family: sans-serif;';
-      const String thStyle = 'background-color: #D4AF37; color: white; text-align: left; padding: 12px; border: 1px solid #ddd;';
-      const String tdStyle = 'padding: 10px; border: 1px solid #ddd; text-align: left;';
+      // CSS Styling for formal appearance - Using Brand Colors (Drishti Green)
+      const String tableStyle = 'border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 14px; font-family: Arial, sans-serif; border: 1px solid #eee;';
+      const String thStyle = 'background-color: #2D6A4F; color: white; text-align: left; padding: 12px; border: 1px solid #2D6A4F;';
+      const String tdStyle = 'padding: 10px; border: 1px solid #eee; text-align: left; color: #333;';
       
-      htmlParts.add('<div style="font-family: Arial, sans-serif; line-height: 1.5; color: #1a1a1a; max-width: 800px; margin: 0 auto;">');
+      htmlParts.add('<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0;">');
       
       // 1. Initial greeting/header block
       if (_blockControllers.isNotEmpty) {
@@ -361,36 +614,34 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
       
       int controllerIndex = 1;
       
-      // 3. Executive summary
-      if (widget.message.content.trim().isNotEmpty && controllerIndex < _blockControllers.length) {
-        htmlParts.add('<h3>EXECUTIVE SUMMARY</h3>');
-        htmlParts.add('<div style="margin-bottom: 20px;">${_formatToHtml(widget.message.content.trim())}</div>');
-        controllerIndex++; // Skip the controller used for summary view as we rebuild it here
+      // 2. Executive summary (Always use the controller so user edits are preserved)
+      if (controllerIndex < _blockControllers.length) {
+        htmlParts.add('<div style="margin-bottom: 20px;">' + _formatToHtml(_blockControllers[controllerIndex++].text) + '</div>');
       }
       
-      // 4. Middle blocks (text, tables, charts)
+      // 4. Middle blocks (text, tables, charts, metrics)
       for (var block in widget.message.blocks) {
         if (block.type == 'table') {
           htmlParts.add(_processTableToHtml(block.data, tableStyle, thStyle, tdStyle));
-        } else if (block.type == 'metrics') {
-          htmlParts.add(_processMetricsToHtml(block.data));
-          controllerIndex++; 
         } else if (block.type == 'chart') {
-          final title = block.data['title'] as String? ?? 'Analytics Chart';
-          htmlParts.add('<div style="margin: 20px 0; padding: 15px; border: 1px dashed #D4AF37; background-color: #fffcf5; text-align: center; border-radius: 8px;">'
-                        '<h4 style="margin: 0; color: #D4AF37;">📈 CHART: $title</h4>'
-                        '<p style="font-size: 12px; color: #888; margin: 5px 0 0 0;">(Detailed visual visualization is available in the Drishti Dashboard)</p>'
-                        '</div>');
+          final chartHtml = _processChartToHtml(block.data);
+          if (chartHtml.isNotEmpty) {
+            htmlParts.add(chartHtml);
+          } else {
+            // Fallback to text representation if visual chart generation failed
+            htmlParts.add(_formatToHtml(_processChartData(block.data)));
+          }
         } else if (_shouldBlockHaveTextArea(block)) {
-          if (controllerIndex < _blockControllers.length) {
+          // Note: metrics are covered here because _shouldBlockHaveTextArea returns true for them
+          if (controllerIndex < _blockControllers.length - 1) { // Leave the last one for closing
             htmlParts.add('<div style="margin-bottom: 20px;">' + _formatToHtml(_blockControllers[controllerIndex++].text) + '</div>');
           }
         }
       }
       
-      // 5. Closing block
+      // 5. Closing block (Last controller)
       if (controllerIndex < _blockControllers.length) {
-        htmlParts.add('<div style="margin-top: 30px;">' + _formatToHtml(_blockControllers[controllerIndex].text) + '</div>');
+        htmlParts.add('<div style="margin-top: 30px;">' + _formatToHtml(_blockControllers.last.text) + '</div>');
       }
 
       htmlParts.add('</div>');
@@ -399,14 +650,21 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
       final subject = _subjectController.text;
       final to = _toController.text;
 
+      final token = await ref.read(authServiceProvider).getToken();
+      
       final dio = Dio();
       final response = await dio.post(
         'https://chatbot.fuzionest.com/api/send-email',
         data: {
-          "to": to,
-          "subject": subject,
-          "html": htmlContent,
+            "to": to,
+            "subject": subject,
+            "html": htmlContent,
         },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
       );
 
       if (mounted) {
@@ -527,37 +785,37 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
     final List<Widget> widgets = [];
     int controllerIndex = 0;
 
-    // 1. Initial greeting block
+    // 1. Header (Greeting, Subject, Query)
     if (controllerIndex < _blockControllers.length) {
       widgets.add(_buildEditableTextBlock(_blockControllers[controllerIndex++]));
       widgets.add(const SizedBox(height: 16));
     }
 
-    // 2. Executive summary block
-    if (widget.message.content.trim().isNotEmpty && controllerIndex < _blockControllers.length) {
+    // 2. Executive Summary
+    if (controllerIndex < _blockControllers.length) {
       widgets.add(_buildEditableTextBlock(_blockControllers[controllerIndex++]));
       widgets.add(const SizedBox(height: 16));
     }
 
-    // 3. Middle blocks
+    // 3. Dynamic Sequential Blocks
     for (var block in widget.message.blocks) {
       if (block.type == 'table') {
         widgets.add(_buildZoomableTable(block.data));
-        widgets.add(const SizedBox(height: 16));
+        widgets.add(const SizedBox(height: 24));
       } else if (block.type == 'chart') {
         widgets.add(_buildChartPlaceholder(block.data));
-        widgets.add(const SizedBox(height: 16));
+        widgets.add(const SizedBox(height: 24));
       } else if (_shouldBlockHaveTextArea(block)) {
-        if (controllerIndex < _blockControllers.length) {
+        if (controllerIndex < _blockControllers.length - 1) { // Leave the last one for footer
           widgets.add(_buildEditableTextBlock(_blockControllers[controllerIndex++]));
           widgets.add(const SizedBox(height: 16));
         }
       }
     }
 
-    // 4. Closing block
+    // 4. Footer (Closing)
     if (controllerIndex < _blockControllers.length) {
-      widgets.add(_buildEditableTextBlock(_blockControllers[controllerIndex]));
+      widgets.add(_buildEditableTextBlock(_blockControllers.last));
     }
 
     return widgets;
@@ -580,47 +838,54 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
   }
 
   Widget _buildChartPlaceholder(Map<String, dynamic> data) {
-    final title = data['title'] as String? ?? 'Analytics Chart';
-    final chartType = (data['chart_type'] as String? ?? 'bar').toUpperCase();
+    final title = (data['title'] ?? data['label'] ?? 'Data Visualization').toString();
+    final url = _getChartUrl(data);
+
+    if (url == null) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-             const Icon(Icons.bar_chart_rounded, size: 16, color: Colors.blueAccent),
+             const Icon(Icons.bar_chart_rounded, size: 16, color: AppColors.accentGreen),
              const SizedBox(width: 8),
-             Text("HIGH-RES VISUAL: $title ($chartType CHART)", 
-               style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+            Expanded(
+              child: Text("VISUALIZATION PREVIEW: $title", 
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: AppColors.accentGreen)),
+            ),
           ],
         ),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
-          height: 180,
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent.withOpacity(0.05), Colors.blueAccent.withOpacity(0.1)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+            color: Colors.white,
+            border: Border.all(color: AppColors.accentGreen.withOpacity(0.3)),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.insert_chart_outlined_rounded, size: 48, color: Colors.blueAccent.withOpacity(0.5)),
-              const SizedBox(height: 12),
-              Text(
-                "Image Placeholder for $chartType Chart",
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.blueAccent.withOpacity(0.8), fontWeight: FontWeight.w500),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              url,
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Container(
+                height: 100,
+                color: Colors.grey[100],
+                child: const Center(child: Text("Preview unavailable - Check connection")),
               ),
-              Text(
-                "Final email will include the generated visualization.",
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.blueAccent.withOpacity(0.6)),
-              ),
-            ],
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  height: 100,
+                  alignment: Alignment.center,
+                  child: const CircularProgressIndicator(strokeWidth: 2),
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -628,44 +893,63 @@ class _EmailDraftSheetState extends ConsumerState<EmailDraftSheet> {
   }
 
   Widget _buildZoomableTable(Map<String, dynamic> data) {
-    final headers = List<String>.from(data['headers'] ?? data['columns'] ?? []);
-    final rows = List<dynamic>.from(data['rows'] ?? []);
-    final title = data['title'] as String? ?? 'Data Table';
+    // Robust data extraction
+    final rows = List<dynamic>.from(data['rows'] ?? data['data'] ?? data['items'] ?? []);
+    if (rows.isEmpty) return const SizedBox.shrink();
+    
+    List<String> headers = List<String>.from(data['headers'] ?? data['columns'] ?? []);
+    if (headers.isEmpty && rows.first is Map) {
+      headers = (rows.first as Map).keys.map((k) => k.toString()).toList();
+    }
+    
+    final title = (data['title'] ?? data['label'] ?? 'Business Analytics Table').toString();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.zoom_in, size: 16, color: AppColors.accentGreen),
+            const Icon(Icons.table_chart_rounded, size: 18, color: AppColors.accentGreen),
             const SizedBox(width: 8),
-            Text("INTERACTIVE TABLE: $title (Pinch to zoom)", style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: AppColors.accentGreen)),
+            Expanded(
+              child: Text(title.toUpperCase(), 
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold, color: AppColors.accentGreen, letterSpacing: 0.5)),
+            ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
+        Text("(Scroll table to view all data • Pinch to zoom)", 
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey[500], fontSize: 10)),
+        const SizedBox(height: 12),
         Container(
-          height: 300,
-          clipBehavior: Clip.antiAlias,
+          constraints: const BoxConstraints(maxHeight: 400),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.accentGreen.withOpacity(0.3)),
+            border: Border.all(color: AppColors.accentGreen.withOpacity(0.2)),
             borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))
+            ],
           ),
-          child: InteractiveViewer(
-            boundaryMargin: const EdgeInsets.all(100),
-            minScale: 0.1,
-            maxScale: 3.0,
-            constrained: false,
-            child: Theme(
-              data: Theme.of(context).copyWith(cardColor: Colors.white),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: InteractiveViewer(
+              boundaryMargin: const EdgeInsets.all(40),
+              minScale: 1.0,
+              maxScale: 2.5,
               child: DataTable(
+                headingRowHeight: 44,
+                dataRowMinHeight: 40,
+                dataRowMaxHeight: 56,
+                columnSpacing: 24,
                 headingRowColor: WidgetStateProperty.all(AppColors.accentGreen),
                 columns: headers.map((h) => DataColumn(
-                  label: Text(h, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))
+                  label: Text(h.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12))
                 )).toList(),
                 rows: rows.map((row) {
-                  final cells = (row is List) 
-                      ? row.map((c) => DataCell(Text(c.toString()))).toList()
-                      : headers.map((h) => DataCell(Text((row as Map)[h]?.toString() ?? ""))).toList();
+                  final cells = rows.first is List 
+                      ? (row as List).map((c) => DataCell(Text(c.toString(), style: const TextStyle(fontSize: 13)))).toList()
+                      : headers.map((h) => DataCell(Text((row as Map)[h]?.toString() ?? "", style: const TextStyle(fontSize: 13)))).toList();
                   return DataRow(cells: cells);
                 }).toList(),
               ),
