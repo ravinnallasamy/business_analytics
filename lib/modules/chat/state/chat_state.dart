@@ -52,28 +52,54 @@ class ChatState {
   final String? activeConversationId;
   final bool isLoading;
   final String? error;
+  // Nullable internally so hot-reload can never produce a null-cast TypeError.
+  final bool? _thinkingModeEnabled;
+  bool get thinkingModeEnabled => _thinkingModeEnabled ?? false;
+
+  final bool? _isGenerating;
+  /// True while awaiting a sendQuestion API response.
+  bool get isGenerating => _isGenerating ?? false;
+
+  /// Current stage label shown in the loading indicator. Null when not generating.
+  final String? generationStage;
 
   ChatState({
     this.conversations = const [],
     this.activeConversationId,
     this.isLoading = false,
     this.error,
-  });
+    bool thinkingModeEnabled = false,
+    bool isGenerating = false,
+    this.generationStage,
+  })  : _thinkingModeEnabled = thinkingModeEnabled,
+        _isGenerating = isGenerating;
 
   ChatState copyWith({
     List<Conversation>? conversations,
     String? activeConversationId,
     bool? isLoading,
     String? error,
+    bool? thinkingModeEnabled,
+    bool? isGenerating,
+    // Use Object? + sentinel to allow explicitly setting generationStage to null
+    Object? generationStage = _kUnset,
   }) {
     return ChatState(
       conversations: conversations ?? this.conversations,
       activeConversationId: activeConversationId ?? this.activeConversationId,
       isLoading: isLoading ?? this.isLoading,
-      error: error, // Allow null to clear error
+      error: error,
+      thinkingModeEnabled: thinkingModeEnabled ?? this.thinkingModeEnabled,
+      isGenerating: isGenerating ?? this.isGenerating,
+      generationStage: identical(generationStage, _kUnset)
+          ? this.generationStage
+          : generationStage as String?,
     );
   }
 }
+
+/// Sentinel value used in copyWith to distinguish "not provided" from explicit null.
+const _kUnset = Object();
 
 // Notifier
 final conversationRepositoryProvider = Provider((ref) {
@@ -87,6 +113,11 @@ final conversationRepositoryProvider = Provider((ref) {
 
 class ChatNotifier extends Notifier<ChatState> {
   late final ConversationRepository _repository;
+  /// Held so cancelGeneration() can abort in-flight Dio requests.
+  CancelToken? _pendingCancelToken;
+  /// Incremented on every new request. Stage timer callbacks check this
+  /// before mutating state so old timers never bleed into new requests.
+  int _stageToken = 0;
 
   @override
   ChatState build() {
@@ -384,6 +415,23 @@ class ChatNotifier extends Notifier<ChatState> {
   // ignore: unused_element
   Future<void> _loadConversationHistory(String id) async {}
 
+  /// Toggle thinking mode on/off
+  void toggleThinkingMode() {
+    final newValue = !state.thinkingModeEnabled;
+    state = state.copyWith(thinkingModeEnabled: newValue);
+    debugPrint('🧠 ChatNotifier: Thinking mode ${newValue ? 'ENABLED' : 'DISABLED'}');
+  }
+
+  /// Cancel the in-flight API request and remove the loading message.
+  void cancelGeneration() {
+    // Invalidate stage timers immediately
+    _stageToken++;
+    if (_pendingCancelToken != null && !_pendingCancelToken!.isCancelled) {
+      debugPrint('🛑 ChatNotifier: Cancelling generation');
+      _pendingCancelToken!.cancel('User cancelled');
+    }
+  }
+
   String createNewConversation() {
     debugPrint('✨ ChatNotifier: Preparing new conversation');
     state = state.copyWith(activeConversationId: null); 
@@ -397,10 +445,11 @@ class ChatNotifier extends Notifier<ChatState> {
       activeConversationId: null,
       isLoading: state.isLoading,
       error: null,
+      thinkingModeEnabled: state.thinkingModeEnabled, // Preserve session toggle
     );
   }
 
-  Future<void> sendMessage(String content, {String? toolId}) async {
+  Future<void> sendMessage(String content, {String? toolId, bool? thinkingMode}) async {
     debugPrint('📤 ChatNotifier: Sending message: "$content" (ToolId: $toolId)');
     // 1. Optimistic Update (User Message)
     final tempId = DateTime.now().toString();
@@ -413,16 +462,40 @@ class ChatNotifier extends Notifier<ChatState> {
           timestamp: DateTime.now(),
     );
 
-    // 1.5 Add loading assistant message
+    // Resolve thinking mode: param overrides state
+    final bool isThinking = thinkingMode ?? state.thinkingModeEnabled;
+    debugPrint('🧠 ChatNotifier: thinkingModeEnabled=${state.thinkingModeEnabled}, isThinking=$isThinking');
+
+    // 1.5 Add loading assistant message (use __thinking__ sentinel when thinking mode is on)
     final loadingMessage = ChatMessage(
           id: 'loading_$tempId',
-          content: '',
+          content: isThinking ? '__thinking__' : '',
           isUser: false,
           timestamp: DateTime.now(),
           isLoading: true,
     );
 
-    // Update locally to show user message immediately
+    // Update locally to show user message + set isGenerating
+    state = state.copyWith(isGenerating: true, generationStage: isThinking ? 'Thinking…' : 'Processing results…');
+
+    // ——— Stage timer chain: steps fire until the request completes ———
+    final int token = ++_stageToken;
+    void _scheduleStage(String label, int ms) {
+      Future.delayed(Duration(milliseconds: ms), () {
+        if (_stageToken == token) {
+          state = state.copyWith(generationStage: label);
+        }
+      });
+    }
+
+    if (isThinking) {
+      _scheduleStage('Analyzing question…', 1000);
+      _scheduleStage('Fetching relevant data…', 2000);
+      _scheduleStage('Preparing insights…', 3000);
+      _scheduleStage('Generating response…', 4000);
+    } else {
+      _scheduleStage('Generating response…', 1200);
+    }
     if (currentId != null) {
       final updatedConversations = state.conversations.map((c) {
         if (c.id == currentId) {
@@ -455,36 +528,123 @@ class ChatNotifier extends Notifier<ChatState> {
       // If currentId is temporary, send null to API
       String? apiConversationId = currentId.startsWith('temp_') ? null : currentId;
 
+      // Create a fresh cancel token for this request
+      _pendingCancelToken = CancelToken();
+
       // Use ConversationRepository.sendQuestion
       final response = await _repository.sendQuestion(
         question: content,
         conversationId: apiConversationId,
         toolId: toolId,
+        thinkingMode: isThinking ? true : null,
+        cancelToken: _pendingCancelToken,
       );
+      _pendingCancelToken = null;
 
       // 3. Handle Response
-      final realConversationId = response['conversation_id'];
-      final answer = response['answer'];
-      final messageId = response['message_id'];
-      
-      // Parse Answer Blocks
+      debugPrint('📥 ChatNotifier: Raw response keys: ${response.keys.toList()}');
+      debugPrint('📥 ChatNotifier: Full response: $response');
+
+      final realConversationId = response['conversation_id'] as String?;
+      final messageId = response['message_id'] as String?;
+
+      // Safely extract the answer — handle both `answer` key and flat structure
+      final dynamic rawAnswer = response['answer'] ?? response;
+      final Map<String, dynamic> answer = rawAnswer is Map
+          ? Map<String, dynamic>.from(rawAnswer)
+          : <String, dynamic>{};
+
+      debugPrint('📥 ChatNotifier: answer keys: ${answer.keys.toList()}');
+
+      // Parse Answer Blocks — null-safe with node_steps deep fallback
       List<BlockData> uiBlocks = [];
-      if (answer['blocks'] != null) {
-        final apiBlocks = answer['blocks'] as List;
-        uiBlocks = apiBlocks.map((b) => BlockData(
-          type: b['type'] ?? 'unknown',
-          data: b,
-        )).toList();
-      } else if (answer['summary'] != null) {
-        uiBlocks.add(BlockData(
-          type: 'text',
-          data: {'text': answer['summary']}
-        ));
+
+      // Helper: convert a raw block map to BlockData
+      BlockData _toBlock(dynamic b) {
+        if (b is Map) {
+          // Normalise: some blocks use 'content', others use 'text'
+          final data = Map<String, dynamic>.from(b);
+          if (!data.containsKey('text') && data.containsKey('content')) {
+            data['text'] = data['content'];
+          }
+          return BlockData(type: (data['type'] as String?) ?? 'text', data: data);
+        }
+        return BlockData(type: 'unknown', data: {});
       }
+
+      // 1️⃣  Primary: answer.blocks (non-empty list)
+      final dynamic rawBlocks = answer['blocks'];
+      if (rawBlocks is List && rawBlocks.isNotEmpty) {
+        uiBlocks = rawBlocks.map(_toBlock).toList();
+        debugPrint('📥 ChatNotifier: Parsed ${uiBlocks.length} blocks from answer.blocks');
+      }
+
+      // 2️⃣  Fallback: dig into node_steps → react_agent → execution_result.data.blocks
+      //     This is where the real content lives when answer.blocks is empty
+      if (uiBlocks.isEmpty) {
+        try {
+          final nodeSteps = response['node_steps'];
+          if (nodeSteps is List) {
+            for (final step in nodeSteps) {
+              if (step is Map && step['node'] == 'react_agent') {
+                final execResult = step['output']?['execution_result'];
+                if (execResult is Map) {
+                  final data = execResult['data'];
+                  if (data is Map) {
+                    final stepBlocks = data['blocks'];
+                    if (stepBlocks is List && stepBlocks.isNotEmpty) {
+                      uiBlocks = stepBlocks.map(_toBlock).toList();
+                      debugPrint('📥 ChatNotifier: Parsed ${uiBlocks.length} blocks from node_steps.react_agent');
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ ChatNotifier: node_steps extraction failed: $e');
+        }
+      }
+
+      // 3️⃣  Fallback: answer.summary (only if non-empty string)
+      if (uiBlocks.isEmpty) {
+        final summary = answer['summary']?.toString() ?? '';
+        if (summary.isNotEmpty) {
+          uiBlocks.add(BlockData(type: 'text', data: {'text': summary}));
+          debugPrint('📥 ChatNotifier: Using answer.summary fallback');
+        }
+      }
+
+      // 4️⃣  Fallback: answer.text
+      if (uiBlocks.isEmpty) {
+        final text = answer['text']?.toString() ?? '';
+        if (text.isNotEmpty) {
+          uiBlocks.add(BlockData(type: 'text', data: {'text': text}));
+          debugPrint('📥 ChatNotifier: Using answer.text fallback');
+        }
+      }
+
+      // 5️⃣  Last resort: stringify the whole answer so nothing is silently lost
+      if (uiBlocks.isEmpty && answer.isNotEmpty) {
+        uiBlocks.add(BlockData(type: 'text', data: {'text': answer.toString()}));
+        debugPrint('📥 ChatNotifier: Using raw answer stringify fallback');
+      }
+
+      if (uiBlocks.isEmpty) {
+        debugPrint('⚠️ ChatNotifier: No renderable content found in response');
+      }
+
+      // Derive a readable summary string for the ChatMessage.content field
+      final contentSummary = answer['summary']?.toString().isNotEmpty == true
+          ? answer['summary'].toString()
+          : (uiBlocks.isNotEmpty && uiBlocks.first.data['text'] != null
+              ? uiBlocks.first.data['text'].toString()
+              : '');
 
       final botMessage = ChatMessage(
         id: messageId ?? DateTime.now().toString(),
-        content: answer['summary'] ?? '', // content handled by blocks
+        content: contentSummary,
         isUser: false,
         timestamp: DateTime.now(),
         blocks: uiBlocks,
@@ -526,15 +686,74 @@ class ChatNotifier extends Notifier<ChatState> {
         }).toList();
       }
 
+      // Invalidate any pending stage timers before updating final state
+      _stageToken++;
       state = state.copyWith(
         conversations: finalConversations,
         activeConversationId: currentId,
         isLoading: false,
+        isGenerating: false,
+        generationStage: null,
       );
       
       HomeWidgetService.updateWidget(title: 'New Insight', message: 'Analysis ready');
 
+    } on DioException catch (e) {
+      _pendingCancelToken = null;
+      // User-initiated cancel: silently remove the loading bubble, no error shown
+      if (e.type == DioExceptionType.cancel) {
+        debugPrint('🛑 ChatNotifier: Request cancelled by user');
+        if (currentId != null) {
+          final updatedConversations = state.conversations.map((c) {
+            if (c.id == currentId) {
+              return Conversation(
+                id: c.id,
+                title: c.title,
+                lastUpdated: c.lastUpdated,
+                messages: c.messages.where((m) => !m.isLoading).toList(),
+              );
+            }
+            return c;
+          }).toList();
+          _stageToken++;
+          state = state.copyWith(
+            conversations: updatedConversations,
+            isLoading: false,
+            isGenerating: false,
+            generationStage: null,
+          );
+        } else {
+          _stageToken++;
+          state = state.copyWith(isLoading: false, isGenerating: false, generationStage: null);
+        }
+        return;
+      }
+      // Other Dio errors — fall through to generic handler
+      debugPrint('❌ ChatNotifier: Dio error: ${e.message}');
+      if (currentId != null) {
+        final updatedConversations = state.conversations.map((c) {
+          if (c.id == currentId) {
+            return Conversation(
+              id: c.id,
+              title: c.title,
+              lastUpdated: c.lastUpdated,
+              messages: c.messages.where((m) => !m.isLoading).toList(),
+            );
+          }
+          return c;
+        }).toList();
+        state = state.copyWith(
+          conversations: updatedConversations,
+          isLoading: false,
+          isGenerating: false,
+          generationStage: null,
+          error: e.message,
+        );
+      } else {
+        state = state.copyWith(isLoading: false, isGenerating: false, generationStage: null, error: e.message);
+      }
     } catch (e) {
+      _pendingCancelToken = null;
       debugPrint('❌ ChatNotifier: Failed to send message: $e');
       // Remove loading message on error
       if (currentId != null) {
@@ -549,9 +768,13 @@ class ChatNotifier extends Notifier<ChatState> {
           }
           return c;
         }).toList();
-        state = state.copyWith(conversations: updatedConversations, isLoading: false);
+        state = state.copyWith(
+          conversations: updatedConversations,
+          isLoading: false,
+          isGenerating: false,
+        );
       } else {
-        state = state.copyWith(isLoading: false);
+        state = state.copyWith(isLoading: false, isGenerating: false);
       }
     }
   }
@@ -697,8 +920,6 @@ class ChatNotifier extends Notifier<ChatState> {
     }
   }
 }
-
-final chatInputProvider = StateProvider<String>((ref) => '');
 
 final chatProvider = NotifierProvider<ChatNotifier, ChatState>(ChatNotifier.new);
 

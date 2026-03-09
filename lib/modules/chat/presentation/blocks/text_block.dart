@@ -50,6 +50,7 @@ class TextBlock extends StatelessWidget {
             ),
             child: MarkdownBody(
               data: trimmedLine,
+              selectable: true,
               styleSheet: _getStyleSheet(context, type: _BlockType.heading),
             ),
           ),
@@ -66,6 +67,7 @@ class TextBlock extends StatelessWidget {
                 const EdgeInsets.only(bottom: 6), // Spacing between list items
             child: MarkdownBody(
               data: trimmedLine,
+              selectable: true,
               styleSheet: _getStyleSheet(context, type: _BlockType.action),
             ),
           ),

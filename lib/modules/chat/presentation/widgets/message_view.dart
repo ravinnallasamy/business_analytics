@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/modules/chat/state/chat_state.dart';
 import 'package:business_analytics_chat/modules/chat/presentation/blocks/block_renderer.dart';
 import 'package:business_analytics_chat/core/constants/ui_constants.dart';
@@ -65,6 +66,7 @@ class MessageView extends StatelessWidget {
       ),
       child: MarkdownBody(
         data: message.content,
+        selectable: true,
         styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
           p: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 height: 1.5,
@@ -81,7 +83,9 @@ class MessageView extends StatelessWidget {
 
   Widget _buildAssistantMessage(BuildContext context) {
     if (message.isLoading) {
-      return const _LoaderMessage();
+      // Unified stage indicator for both normal and thinking mode.
+      // Pass isThinking so the pill uses the appropriate colour scheme.
+      return _StageIndicator(isThinking: message.content == '__thinking__');
     }
 
     final contentBlocks =
@@ -176,19 +180,86 @@ class MessageView extends StatelessWidget {
   }
 }
 
-class _LoaderMessage extends StatelessWidget {
-  const _LoaderMessage();
+// ─── Stage Indicator ─────────────────────────────────────────────────────────
+/// Simple pill: GIF icon + crossfading stage text. No card, no list.
+class _StageIndicator extends ConsumerWidget {
+  final bool isThinking;
+  const _StageIndicator({this.isThinking = false});
+
+  static const _normalStages = [
+    'Processing results…',
+    'Generating response…',
+  ];
+  static const _thinkingStages = [
+    'Thinking…',
+    'Analyzing question…',
+    'Fetching relevant data…',
+    'Preparing insights…',
+    'Generating response…',
+  ];
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Image.asset(
-        'assets/loader.gif',
-        width: 50, // Significant size reduction for inline loader
-        height: 25,
-        fit: BoxFit.contain,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentStage = ref.watch(
+      chatProvider.select(
+        (s) =>
+            (s.generationStage as String?) ??
+            (isThinking ? 'Thinking…' : 'Processing results…'),
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // GIF loader
+          Image.asset(
+            'assets/loader.gif',
+            width: 32,
+            height: 20,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(width: 8),
+          // Crossfading stage text
+          AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.3),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: anim,
+                    curve: Curves.easeOut,
+                  )),
+                  child: child,
+                ),
+              ),
+              child: Text(
+                currentStage,
+                key: ValueKey(currentStage),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF555555),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
+
+
+
+
+
+
+
+
+

@@ -72,8 +72,13 @@ class SuggestionsBlock extends ConsumerWidget {
                   children: [
                     _SuggestionRow(
                       text: text,
-                      onTap: () =>
-                          ref.read(chatInputProvider.notifier).state = text,
+                      onTap: () {
+                        // Directly send to chat API
+                        ref.read(chatProvider.notifier).sendMessage(
+                              text,
+                              toolId: toolId.isNotEmpty ? toolId : null,
+                            );
+                      },
                     ),
                     if (!isLast)
                       const Divider(

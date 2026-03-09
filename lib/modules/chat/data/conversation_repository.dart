@@ -222,10 +222,12 @@ class ConversationRepository {
     String? conversationId, // null for new conversation
     String? toolId,
     bool enableCache = true,
+    bool? thinkingMode, // Only included in request when non-null and true
+    CancelToken? cancelToken, // For user-initiated cancellation
   }) async {
     try {
       debugPrint(
-          '🌐 ConversationRepository: Sending question: "$question" (ToolID: $toolId, ConversationID: $conversationId)');
+          '🌐 ConversationRepository: Sending question: "$question" (ToolID: $toolId, ConversationID: $conversationId, ThinkingMode: $thinkingMode)');
       // Get token from secure storage
       final token = await _storage.read(key: 'auth_token');
 
@@ -233,14 +235,20 @@ class ConversationRepository {
         throw Exception('No authentication token found');
       }
 
-      // Build request body
-      final requestBody = {
+      // IMPORTANT: thinking_mode must ONLY be included when enabled (never send false)
+      final requestBody = <String, dynamic>{
         'question': question,
-        'conversation_id': conversationId, // null for new conversation
+        'conversation_id': conversationId,
         'tool_id': toolId,
         'enable_cache': enableCache,
         'streamEnabled': false,
       };
+      if (thinkingMode == true) {
+        requestBody['thinking_mode'] = true;
+      }
+
+      // ✅ Log exact request body so it is visible in console
+      debugPrint('📤 ConversationRepository: Request body → $requestBody');
 
       debugPrint(
           '🌐 ConversationRepository: Posting to: ${ApiConfig.sendQuestionEndpoint}');
@@ -249,6 +257,7 @@ class ConversationRepository {
       final response = await _dio.post(
         ApiConfig.sendQuestionEndpoint,
         data: requestBody,
+        cancelToken: cancelToken,
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',

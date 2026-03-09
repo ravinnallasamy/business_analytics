@@ -313,18 +313,10 @@ class _TableBlockState extends State<TableBlock> {
                 child: Scrollbar(
                   controller: _horizontalScrollController,
                   thumbVisibility: true,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onHorizontalDragUpdate: (details) {
-                      final pos = _horizontalScrollController.position;
-                      final newOffset = (pos.pixels - details.delta.dx)
-                          .clamp(pos.minScrollExtent, pos.maxScrollExtent);
-                      pos.jumpTo(newOffset);
-                    },
-                    child: SingleChildScrollView(
-                      controller: _horizontalScrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: const NeverScrollableScrollPhysics(),
+                  child: SingleChildScrollView(
+                    controller: _horizontalScrollController,
+                    scrollDirection: Axis.horizontal,
+                    physics: const AlwaysScrollableScrollPhysics(),
                       child: Container(
                         width: tableWidth,
                         child: Table(
@@ -393,7 +385,6 @@ class _TableBlockState extends State<TableBlock> {
                               );
                             }),
                           ],
-                        ),
                       ),
                     ),
                   ),

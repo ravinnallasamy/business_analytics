@@ -76,8 +76,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
 
-      // Use maxScrollExtent for non-reversed list
-      final position = _scrollController.position.maxScrollExtent;
+      // Guard: scroll geometry may not be ready yet (especially on web)
+      final scrollPos = _scrollController.position;
+      if (!scrollPos.hasContentDimensions) return;
+
+      final position = scrollPos.maxScrollExtent;
 
       if (animate) {
         _scrollController.animateTo(
@@ -132,9 +135,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             debugPrint(
                 '📜 Scroll: Bot response finished, showing top of response');
 
-            if (_scrollController.hasClients) {
-              // The current maxScrollExtent is exactly where the new message starts
-              // because it hasn't been rendered yet in this frame.
+            if (_scrollController.hasClients &&
+                _scrollController.position.hasContentDimensions) {
+              // Capture extent before the new item is laid out — that's
+              // where the new message will start after the frame.
               final topOfNewMessage =
                   _scrollController.position.maxScrollExtent;
 
@@ -190,46 +194,45 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               ),
             )
           : null,
-      body: Column(
-        children: [
-          Expanded(
-            child: SafeArea(
-              bottom: false, // Let InputBar handle the bottom
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: isLoading
-                    ? const _MessageSkeletonList()
-                    : activeConversation != null
-                        ? GestureDetector(
-                            onTap: () => FocusScope.of(context).unfocus(),
-                            behavior: HitTestBehavior.translucent,
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              reverse: false,
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              itemCount: activeConversation.messages.length,
-                              itemBuilder: (context, index) {
-                                final message =
-                                    activeConversation.messages[index];
-                                return MessageView(message: message);
-                              },
+      body: SelectionArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SafeArea(
+                bottom: false, // Let InputBar handle the bottom
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: isLoading
+                      ? const _MessageSkeletonList()
+                      : activeConversation != null
+                          ? ListView.builder(
+                                controller: _scrollController,
+                                reverse: false,
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                itemCount: activeConversation.messages.length,
+                                itemBuilder: (context, index) {
+                                  final message =
+                                      activeConversation.messages[index];
+                                  return MessageView(message: message);
+                                },
+                              )
+                          : SingleChildScrollView(
+                              padding: EdgeInsets.only(
+                                  top: isDesktop ? 24 : 60, bottom: 40),
+                              child: _NewChatWelcome(onSuggestionTap: (question) {
+                                // Directly send to chat API
+                                ref.read(chatProvider.notifier).sendMessage(question);
+                              }),
                             ),
-                          )
-                        : SingleChildScrollView(
-                            padding: EdgeInsets.only(
-                                top: isDesktop ? 24 : 60, bottom: 40),
-                            child: _NewChatWelcome(onSuggestionTap: (question) {
-                              ref.read(chatInputProvider.notifier).state = question;
-                            }),
-                          ),
+                ),
               ),
             ),
-          ),
-
-          // Fixed Footer Input Bar - Now bleeds to screen bottom
-          const ChatInputBar(isProminent: false),
-        ],
+    
+            // Fixed Footer Input Bar - Now bleeds to screen bottom
+            const ChatInputBar(isProminent: false),
+          ],
+        ),
       ),
     );
   }
