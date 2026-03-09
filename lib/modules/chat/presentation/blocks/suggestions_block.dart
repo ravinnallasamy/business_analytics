@@ -14,18 +14,21 @@ class SuggestionsBlock extends ConsumerWidget {
     // Logic: Suggestions should only be visible for the very last message in the thread.
     final activeConv = ref.watch(activeConversationProvider);
     if (activeConv != null && messageId != null) {
-      if (activeConv.messages.isNotEmpty && activeConv.messages.last.id != messageId) {
+      if (activeConv.messages.isNotEmpty &&
+          activeConv.messages.last.id != messageId) {
         return const SizedBox.shrink();
       }
     }
 
-    final rawItems = data['items'] ?? data['suggestions'] ?? data['actions'] ?? [];
+    final rawItems =
+        data['items'] ?? data['suggestions'] ?? data['actions'] ?? [];
     final items = (rawItems as List<dynamic>).map((e) => e.toString()).toList();
 
     if (items.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 18, bottom: 8), // Gemini-style suggestion top margin
+      padding: const EdgeInsets.only(
+          top: 18, bottom: 8), // Gemini-style suggestion top margin
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -54,7 +57,8 @@ class SuggestionsBlock extends ConsumerWidget {
                   children: [
                     _SuggestionRow(
                       text: text,
-                      onTap: () => ref.read(chatProvider.notifier).sendMessage(text),
+                      onTap: () =>
+                          ref.read(chatProvider.notifier).sendMessage(text),
                     ),
                     if (!isLast)
                       const Divider(
@@ -103,8 +107,8 @@ class _SuggestionRowState extends State<_SuggestionRow> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: _isHovered 
-                ? const Color(0xFFF7F7F7) 
+            color: _isHovered
+                ? Theme.of(context).colorScheme.surfaceContainerHighest
                 : Colors.transparent,
           ),
           child: Row(
@@ -115,7 +119,9 @@ class _SuggestionRowState extends State<_SuggestionRow> {
                 child: Icon(
                   Icons.subdirectory_arrow_right_rounded,
                   size: 18,
-                  color: _isHovered ? AppColors.accentGreen : AppColors.textSecondary.withOpacity(0.6),
+                  color: _isHovered
+                      ? AppColors.accentGreen
+                      : AppColors.textSecondary.withOpacity(0.6),
                 ),
               ),
               const SizedBox(width: 12),
@@ -124,8 +130,8 @@ class _SuggestionRowState extends State<_SuggestionRow> {
                   widget.text,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: _isHovered
-                            ? AppColors.textPrimary
-                            : const Color(0xFF444444),
+                            ? Theme.of(context).colorScheme.onSurface
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                         height: 1.3,
                       ),

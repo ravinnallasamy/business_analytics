@@ -4,16 +4,28 @@ import 'package:business_analytics_chat/core/theme/app_colors.dart';
 
 class AppTheme {
   static ThemeData getTheme(BuildContext context, Brightness brightness) {
-    // Note: The palette is designed to be consistent. 
-    // Even in "dark mode" system settings, we maintain the dark sidebar / light content 
-    // distinction as requested in the visual reference.
-    
+    final isDark = brightness == Brightness.dark;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final double scale = (screenWidth / 390).clamp(0.9, 1.2);
 
+    // Brightness-aware surface colors
+    final backgroundColor =
+        isDark ? const Color(0xFF121212) : AppColors.primaryBackground;
+    final surfaceColor =
+        isDark ? const Color(0xFF1E1E1E) : AppColors.primaryBackground;
+    final cardColor = isDark ? const Color(0xFF252525) : Colors.white;
+    final onSurfaceColor = isDark ? Colors.white : AppColors.textPrimary;
+    final onSurfaceVariantColor =
+        isDark ? Colors.white70 : AppColors.textSecondary;
+    final borderColor = isDark ? const Color(0xFF3A3A3A) : AppColors.borderGray;
+    final surfaceContainerHighestColor = isDark
+        ? const Color(0xFF333333)
+        : AppColors.borderGray.withOpacity(0.5);
+
     TextTheme buildTextTheme(Brightness brightness) {
-      final Color textColor = brightness == Brightness.light ? AppColors.textPrimary : Colors.white;
-      
+      final Color textColor =
+          brightness == Brightness.light ? AppColors.textPrimary : Colors.white;
+
       return GoogleFonts.interTextTheme(
         TextTheme(
           // Metric numbers (22-26 Bold)
@@ -62,7 +74,9 @@ class AppTheme {
           bodySmall: TextStyle(
             fontSize: 13 * scale,
             fontWeight: FontWeight.w400,
-            color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
+            color: brightness == Brightness.light
+                ? AppColors.textSecondary
+                : Colors.white70,
             height: 1.4,
           ),
           // UI Controls / Labels (14 Medium)
@@ -74,12 +88,16 @@ class AppTheme {
           labelMedium: TextStyle(
             fontSize: 13 * scale,
             fontWeight: FontWeight.w500,
-            color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
+            color: brightness == Brightness.light
+                ? AppColors.textSecondary
+                : Colors.white70,
           ),
           labelSmall: TextStyle(
             fontSize: 12 * scale,
             fontWeight: FontWeight.w500,
-            color: brightness == Brightness.light ? AppColors.textSecondary : Colors.white70,
+            color: brightness == Brightness.light
+                ? AppColors.textSecondary
+                : Colors.white70,
           ),
         ),
       );
@@ -93,21 +111,23 @@ class AppTheme {
       onSecondary: Colors.white,
       error: const Color(0xFFBA1A1A),
       onError: Colors.white,
-      surface: AppColors.primaryBackground,
-      onSurface: AppColors.textPrimary,
-      surfaceContainerHighest: AppColors.borderGray.withOpacity(0.5),
-      onSurfaceVariant: AppColors.textSecondary,
-      outline: AppColors.borderGray,
-      outlineVariant: AppColors.borderGray.withOpacity(0.5),
+      surface: surfaceColor,
+      onSurface: onSurfaceColor,
+      surfaceContainerHighest: surfaceContainerHighestColor,
+      onSurfaceVariant: onSurfaceVariantColor,
+      outline: borderColor,
+      outlineVariant: isDark
+          ? const Color(0xFF2A2A2A)
+          : AppColors.borderGray.withOpacity(0.5),
       shadow: Colors.black.withOpacity(0.05),
     );
 
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.primaryBackground,
+      scaffoldBackgroundColor: backgroundColor,
       colorScheme: colorScheme,
       textTheme: buildTextTheme(brightness),
-      
+
       // Sidebar styling via DrawerTheme
       drawerTheme: const DrawerThemeData(
         backgroundColor: AppColors.sidebarBackground,
@@ -116,13 +136,13 @@ class AppTheme {
       ),
 
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.primaryBackground,
+        backgroundColor: backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         iconTheme: const IconThemeData(color: AppColors.accentGreen),
         titleTextStyle: TextStyle(
-          color: AppColors.textPrimary,
+          color: onSurfaceColor,
           fontSize: 20 * scale,
           fontWeight: FontWeight.w600,
         ),
@@ -130,11 +150,11 @@ class AppTheme {
 
       cardTheme: CardThemeData(
         elevation: 0,
-        color: Colors.white,
+        color: cardColor,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.borderGray),
+          side: BorderSide(color: borderColor),
         ),
       ),
 
@@ -147,7 +167,7 @@ class AppTheme {
           fontSize: 14 * scale,
         ),
         dataTextStyle: TextStyle(
-          color: AppColors.textPrimary,
+          color: onSurfaceColor,
           fontSize: 14 * scale,
           fontWeight: FontWeight.w400, // Regular for body
         ),
@@ -155,31 +175,33 @@ class AppTheme {
         horizontalMargin: 16,
       ),
 
-      dividerTheme: const DividerThemeData(
-        color: AppColors.borderGray,
+      dividerTheme: DividerThemeData(
+        color: borderColor,
         thickness: 1,
         space: 1,
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        fillColor: cardColor,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.borderGray),
+          borderSide: BorderSide(color: borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.borderGray),
+          borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.accentGreen, width: 1.5),
+          borderSide:
+              const BorderSide(color: AppColors.accentGreen, width: 1.5),
         ),
         hintStyle: TextStyle(
           fontFamily: 'Inter',
-          color: AppColors.textSecondary,
+          color: onSurfaceVariantColor,
           fontSize: 14 * scale,
           fontWeight: FontWeight.w400,
         ),
@@ -203,7 +225,8 @@ class AppTheme {
   }
 
   // Backwards compatibility
-  static ThemeData get lightTheme => throw UnimplementedError('Use getTheme(context, Brightness.light)');
-  static ThemeData get darkTheme => throw UnimplementedError('Use getTheme(context, Brightness.dark)');
+  static ThemeData get lightTheme =>
+      throw UnimplementedError('Use getTheme(context, Brightness.light)');
+  static ThemeData get darkTheme =>
+      throw UnimplementedError('Use getTheme(context, Brightness.dark)');
 }
-

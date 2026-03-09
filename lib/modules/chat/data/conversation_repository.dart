@@ -25,7 +25,8 @@ class ConversationRepository {
 
   // --- CACHE KEYS ---
   String _conversationsKey(String userId) => 'conversations_$userId';
-  String _historyKey(String userId, String convId) => 'history_${userId}_$convId';
+  String _historyKey(String userId, String convId) =>
+      'history_${userId}_$convId';
 
   /// Clear user cache
   Future<void> clearCache() async {
@@ -39,7 +40,7 @@ class ConversationRepository {
     try {
       final token = await _storage.read(key: 'auth_token');
       if (token == null) return null;
-      
+
       final userId = await _getUserId(token);
       if (userId == null) return null;
 
@@ -58,7 +59,7 @@ class ConversationRepository {
       debugPrint('🌐 ConversationRepository: Fetching all conversations...');
       // Get token from secure storage
       final token = await _storage.read(key: 'auth_token');
-      
+
       if (token == null || token.isEmpty) {
         debugPrint('❌ ConversationRepository: No auth token found');
         throw Exception('No authentication token found');
@@ -66,7 +67,8 @@ class ConversationRepository {
 
       final userId = await _getUserId(token);
 
-      debugPrint('🌐 ConversationRepository: Fetching from: ${ApiConfig.getAllConversationsEndpoint}');
+      debugPrint(
+          '🌐 ConversationRepository: Fetching from: ${ApiConfig.getAllConversationsEndpoint}');
 
       // Make API request with Bearer token
       final response = await _dio.get(
@@ -79,30 +81,33 @@ class ConversationRepository {
         ),
       );
 
-      debugPrint('✅ ConversationRepository: getAllConversations response code: ${response.statusCode}');
+      debugPrint(
+          '✅ ConversationRepository: getAllConversations response code: ${response.statusCode}');
 
       // Handle successful response
       if (response.statusCode == 200) {
         final data = response.data;
-        
+
         // Handle different response formats
         List<Map<String, dynamic>> conversations = [];
         if (data is List) {
           conversations = List<Map<String, dynamic>>.from(data);
         } else if (data is Map && data.containsKey('conversations')) {
-          conversations = List<Map<String, dynamic>>.from(data['conversations']);
+          conversations =
+              List<Map<String, dynamic>>.from(data['conversations']);
         } else if (data is Map && data.containsKey('data')) {
           conversations = List<Map<String, dynamic>>.from(data['data']);
         }
-        
-        debugPrint('✅ ConversationRepository: Found ${conversations.length} conversations');
+
+        debugPrint(
+            '✅ ConversationRepository: Found ${conversations.length} conversations');
 
         // CACHE UPDATE
         if (userId != null) {
           try {
             await _cache.set(
-              _conversationsKey(userId), 
-              conversations, 
+              _conversationsKey(userId),
+              conversations,
               const Duration(minutes: 10),
             );
           } catch (e) {
@@ -112,11 +117,14 @@ class ConversationRepository {
 
         return conversations;
       } else {
-        debugPrint('❌ ConversationRepository: Failed to fetch conversations: ${response.statusCode}');
-        throw Exception('Failed to fetch conversations: ${response.statusCode}');
+        debugPrint(
+            '❌ ConversationRepository: Failed to fetch conversations: ${response.statusCode}');
+        throw Exception(
+            'Failed to fetch conversations: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      debugPrint('❌ ConversationRepository: getAllConversations failed: ${e.message}');
+      debugPrint(
+          '❌ ConversationRepository: getAllConversations failed: ${e.message}');
       if (e.response?.statusCode == 401) {
         throw Exception('Unauthorized: Please login again');
       } else {
@@ -125,7 +133,8 @@ class ConversationRepository {
         throw Exception('Failed to fetch conversations: ${e.message}');
       }
     } catch (e) {
-      debugPrint('❌ ConversationRepository: Unexpected error in getAllConversations: $e');
+      debugPrint(
+          '❌ ConversationRepository: Unexpected error in getAllConversations: $e');
       throw Exception('Unexpected error: $e');
     }
   }
@@ -135,7 +144,7 @@ class ConversationRepository {
     try {
       final token = await _storage.read(key: 'auth_token');
       if (token == null) return null;
-      
+
       final userId = await _getUserId(token);
       if (userId == null) return null;
 
@@ -151,11 +160,13 @@ class ConversationRepository {
   /// Fetch chat history for a specific conversation
   Future<Map<String, dynamic>> getChatHistory(String conversationId) async {
     try {
-      debugPrint('🌐 ConversationRepository: Fetching history for $conversationId...');
+      debugPrint(
+          '🌐 ConversationRepository: Fetching history for $conversationId...');
       final token = await _storage.read(key: 'auth_token');
-      
-      if (token == null || token.isEmpty) throw Exception('No authentication token found');
-      
+
+      if (token == null || token.isEmpty)
+        throw Exception('No authentication token found');
+
       final userId = await _getUserId(token);
 
       final endpoint = ApiConfig.getChatHistoryEndpoint(conversationId);
@@ -171,21 +182,22 @@ class ConversationRepository {
 
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        
+
         if (!data.containsKey('success') || data['success'] != true) {
           throw Exception('API returned unsuccessful response');
         }
-       
+
         // CACHE UPDATE
         if (userId != null) {
           try {
             await _cache.set(
-              _historyKey(userId, conversationId), 
-              data, 
+              _historyKey(userId, conversationId),
+              data,
               const Duration(days: 1),
             );
           } catch (e) {
-            debugPrint('⚠️ ConversationRepository: History cache update failed: $e');
+            debugPrint(
+                '⚠️ ConversationRepository: History cache update failed: $e');
           }
         }
 
@@ -194,8 +206,10 @@ class ConversationRepository {
         throw Exception('Failed to fetch chat history: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) throw Exception('Unauthorized: Please login again');
-      if (e.response?.statusCode == 404) throw Exception('Conversation not found');
+      if (e.response?.statusCode == 401)
+        throw Exception('Unauthorized: Please login again');
+      if (e.response?.statusCode == 404)
+        throw Exception('Conversation not found');
       throw Exception('Failed to fetch chat history: ${e.message}');
     } catch (e) {
       throw Exception('Unexpected error: $e');
@@ -205,14 +219,15 @@ class ConversationRepository {
   /// Send a question to the agent
   Future<Map<String, dynamic>> sendQuestion({
     required String question,
-    String? conversationId,  // null for new conversation
+    String? conversationId, // null for new conversation
     bool enableCache = true,
   }) async {
     try {
-      debugPrint('🌐 ConversationRepository: Sending question: "$question" (ConversationID: $conversationId)');
+      debugPrint(
+          '🌐 ConversationRepository: Sending question: "$question" (ConversationID: $conversationId)');
       // Get token from secure storage
       final token = await _storage.read(key: 'auth_token');
-      
+
       if (token == null || token.isEmpty) {
         throw Exception('No authentication token found');
       }
@@ -220,11 +235,13 @@ class ConversationRepository {
       // Build request body
       final requestBody = {
         'question': question,
-        'conversation_id': conversationId,  // null for new conversation
+        'conversation_id': conversationId, // null for new conversation
         'enable_cache': enableCache,
+        'streamEnabled': false,
       };
 
-      debugPrint('🌐 ConversationRepository: Posting to: ${ApiConfig.sendQuestionEndpoint}');
+      debugPrint(
+          '🌐 ConversationRepository: Posting to: ${ApiConfig.sendQuestionEndpoint}');
 
       // Make API request with Bearer token
       final response = await _dio.post(
@@ -238,7 +255,8 @@ class ConversationRepository {
         ),
       );
 
-      debugPrint('✅ ConversationRepository: sendQuestion response code: ${response.statusCode}');
+      debugPrint(
+          '✅ ConversationRepository: sendQuestion response code: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
@@ -246,7 +264,8 @@ class ConversationRepository {
         // It will be cached when we refresh history or conversation list next time.
         return data;
       } else {
-        debugPrint('❌ ConversationRepository: Failed to send question: ${response.statusCode}');
+        debugPrint(
+            '❌ ConversationRepository: Failed to send question: ${response.statusCode}');
         throw Exception('Failed to send question: ${response.statusCode}');
       }
     } on DioException catch (e) {
@@ -254,23 +273,28 @@ class ConversationRepository {
       if (e.response?.statusCode == 401) {
         throw Exception('Unauthorized: Please login again');
       } else if (e.type == DioExceptionType.connectionTimeout) {
-        throw Exception('Connection timeout. Please check your internet connection.');
+        throw Exception(
+            'Connection timeout. Please check your internet connection.');
       } else if (e.type == DioExceptionType.receiveTimeout) {
-        throw Exception('Server response timeout. The question is taking longer than expected.');
+        throw Exception(
+            'Server response timeout. The question is taking longer than expected.');
       } else {
         throw Exception('Failed to send question: ${e.message}');
       }
     } catch (e) {
-      debugPrint('❌ ConversationRepository: Unexpected error in sendQuestion: $e');
+      debugPrint(
+          '❌ ConversationRepository: Unexpected error in sendQuestion: $e');
       throw Exception('Unexpected error: $e');
     }
   }
 
   /// Rename a conversation
-  Future<void> renameConversation(String conversationId, String newTitle) async {
+  Future<void> renameConversation(
+      String conversationId, String newTitle) async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      if (token == null || token.isEmpty) throw Exception('No authentication token found');
+      if (token == null || token.isEmpty)
+        throw Exception('No authentication token found');
 
       final response = await _dio.patch(
         ApiConfig.renameConversationEndpoint(conversationId),
@@ -284,9 +308,10 @@ class ConversationRepository {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to rename conversation: ${response.statusCode}');
+        throw Exception(
+            'Failed to rename conversation: ${response.statusCode}');
       }
-      
+
       // Update cache after rename
       final userId = await _getUserId(token);
       if (userId != null) {
@@ -299,7 +324,8 @@ class ConversationRepository {
             }
             return c;
           }).toList();
-          await _cache.set(_conversationsKey(userId), updated, const Duration(minutes: 10));
+          await _cache.set(
+              _conversationsKey(userId), updated, const Duration(minutes: 10));
         }
       }
     } catch (e) {
@@ -312,7 +338,8 @@ class ConversationRepository {
   Future<void> deleteConversation(String conversationId) async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      if (token == null || token.isEmpty) throw Exception('No authentication token found');
+      if (token == null || token.isEmpty)
+        throw Exception('No authentication token found');
 
       final response = await _dio.delete(
         ApiConfig.deleteConversationEndpoint(conversationId),
@@ -324,7 +351,8 @@ class ConversationRepository {
       );
 
       if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete conversation: ${response.statusCode}');
+        throw Exception(
+            'Failed to delete conversation: ${response.statusCode}');
       }
 
       // Update cache after delete
@@ -337,7 +365,8 @@ class ConversationRepository {
             final id = c['conversation_id'] ?? c['id'] ?? c['_id'];
             return id != conversationId;
           }).toList();
-          await _cache.set(_conversationsKey(userId), updated, const Duration(minutes: 10));
+          await _cache.set(
+              _conversationsKey(userId), updated, const Duration(minutes: 10));
         }
         // Remove history cache
         await _cache.remove(_historyKey(userId, conversationId));
@@ -352,7 +381,8 @@ class ConversationRepository {
   Future<void> deleteAllConversations() async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      if (token == null || token.isEmpty) throw Exception('No authentication token found');
+      if (token == null || token.isEmpty)
+        throw Exception('No authentication token found');
 
       final response = await _dio.delete(
         ApiConfig.deleteAllConversationsEndpoint,
@@ -364,7 +394,8 @@ class ConversationRepository {
       );
 
       if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete all conversations: ${response.statusCode}');
+        throw Exception(
+            'Failed to delete all conversations: ${response.statusCode}');
       }
 
       // Clear cache after delete all
@@ -378,9 +409,8 @@ class ConversationRepository {
     }
   }
 
-
   /// Parse messages from chat history response
-  /// 
+  ///
   /// Extracts and formats messages for display
   List<Map<String, dynamic>> parseMessages(Map<String, dynamic> chatHistory) {
     if (!chatHistory.containsKey('messages')) {
@@ -392,7 +422,7 @@ class ConversationRepository {
   }
 
   /// Get message content for display
-  /// 
+  ///
   /// Handles both user and assistant messages
   String getMessageContent(Map<String, dynamic> message) {
     final role = message['role'] as String;
@@ -400,15 +430,15 @@ class ConversationRepository {
 
     if (role == 'user') {
       // User message: extract question
-      return contentJson['question'] as String? ?? 
-             contentJson['reconstructed_intent'] as String? ?? 
-             'User message';
+      return contentJson['question'] as String? ??
+          contentJson['reconstructed_intent'] as String? ??
+          'User message';
     } else if (role == 'assistant') {
       // Assistant message: extract summary or first text block
       if (contentJson.containsKey('summary')) {
         return contentJson['summary'] as String;
       }
-      
+
       if (contentJson.containsKey('blocks')) {
         final blocks = contentJson['blocks'] as List;
         for (var block in blocks) {
@@ -417,7 +447,7 @@ class ConversationRepository {
           }
         }
       }
-      
+
       return 'Assistant response';
     }
 
@@ -425,7 +455,7 @@ class ConversationRepository {
   }
 
   /// Get suggestions from assistant message
-  /// 
+  ///
   /// Returns list of suggestion strings
   List<String> getSuggestions(Map<String, dynamic> message) {
     if (message['role'] != 'assistant') {
@@ -433,13 +463,13 @@ class ConversationRepository {
     }
 
     final contentJson = message['content_json'] as Map<String, dynamic>;
-    
+
     if (!contentJson.containsKey('blocks')) {
       return [];
     }
 
     final blocks = contentJson['blocks'] as List;
-    
+
     for (var block in blocks) {
       if (block['type'] == 'suggestions' && block.containsKey('items')) {
         return List<String>.from(block['items']);
@@ -450,7 +480,7 @@ class ConversationRepository {
   }
 
   /// Get all content blocks from assistant message
-  /// 
+  ///
   /// Returns list of blocks (text, suggestions, charts, etc.)
   List<Map<String, dynamic>> getContentBlocks(Map<String, dynamic> message) {
     if (message['role'] != 'assistant') {
@@ -458,7 +488,7 @@ class ConversationRepository {
     }
 
     final contentJson = message['content_json'] as Map<String, dynamic>;
-    
+
     if (!contentJson.containsKey('blocks')) {
       return [];
     }

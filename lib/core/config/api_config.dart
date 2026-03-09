@@ -23,11 +23,12 @@ class ApiConfig {
 
   // ── Real backend URLs ──────────────────────────────────────────────────────
   static const String _realApiChatbotBase = 'https://api-chatbot.fuzionest.com';
-  static const String _realChatbotBase    = 'https://chatbot.fuzionest.com';
+  static const String _realChatbotBase = 'https://chatbot.fuzionest.com';
 
   // ── Resolved base URLs (proxy-aware) ──────────────────────────────────────
-  static String get _apiChatbotBase =>
-      (_useLocalProxy && kIsWeb) ? '$_proxyBase/api-chatbot' : _realApiChatbotBase;
+  static String get _apiChatbotBase => (_useLocalProxy && kIsWeb)
+      ? '$_proxyBase/api-chatbot'
+      : _realApiChatbotBase;
 
   static String get _chatbotBase =>
       (_useLocalProxy && kIsWeb) ? '$_proxyBase/chatbot' : _realChatbotBase;
@@ -54,14 +55,16 @@ class ApiConfig {
   // ============================================================================
   /// GET /api/conversations
   /// Headers: Authorization: Bearer <token>
-  static String get getAllConversationsEndpoint => '$_chatbotBase/api/conversations';
+  static String get getAllConversationsEndpoint =>
+      '$_chatbotBase/api/conversations';
 
   // ============================================================================
   // API 3: SEND QUESTION / GET ANSWER
   // ============================================================================
   /// POST /api/v2/agent/run
   /// Body: { "question": "...", "conversation_id": null, "enable_cache": true }
-  static String get sendQuestionEndpoint => '$_apiChatbotBase/api/v2/agent/run';
+  static String get sendQuestionEndpoint =>
+      '$_apiChatbotBase/api/v2/agent/run-stream-legacy';
 
   // ============================================================================
   // API 4: GET CHAT HISTORY
@@ -89,8 +92,9 @@ class ApiConfig {
   // TIMEOUTS
   // ============================================================================
   static const Duration connectTimeout = Duration(seconds: 15);
-  static const Duration receiveTimeout = Duration(seconds: 60); // AI responses can be slow
-  static const Duration sendTimeout    = Duration(seconds: 15);
+  static const Duration receiveTimeout =
+      Duration(seconds: 60); // AI responses can be slow
+  static const Duration sendTimeout = Duration(seconds: 15);
 
   // ============================================================================
   // HELPERS

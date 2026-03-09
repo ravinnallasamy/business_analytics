@@ -1,8 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:business_analytics_chat/modules/auth/state/auth_notifier.dart';
-import 'package:business_analytics_chat/core/theme/app_colors.dart';
 import 'package:business_analytics_chat/core/constants/ui_constants.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -16,7 +14,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;  // Add password visibility state
+  bool _obscurePassword = true; // Add password visibility state
 
   @override
   void dispose() {
@@ -38,7 +36,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(UIConstants.paddingLarge),
@@ -46,9 +43,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             constraints: const BoxConstraints(maxWidth: 400),
             padding: const EdgeInsets.all(UIConstants.paddingLarge),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(UIConstants.borderRadiusLarge),
-              border: Border.all(color: AppColors.borderGray),
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius:
+                  BorderRadius.circular(UIConstants.borderRadiusLarge),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
@@ -65,7 +63,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   Center(
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: UIConstants.paddingMedium),
+                      padding: const EdgeInsets.only(
+                          bottom: UIConstants.paddingMedium),
                       child: Image.asset(
                         'assets/logo.jpg',
                         height: 80,
@@ -84,14 +83,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   if (authState.error != null)
                     Container(
                       padding: const EdgeInsets.all(UIConstants.paddingMedium),
-                      margin: const EdgeInsets.only(bottom: UIConstants.paddingMedium),
+                      margin: const EdgeInsets.only(
+                          bottom: UIConstants.paddingMedium),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(UIConstants.borderRadiusMedium),
+                        borderRadius: BorderRadius.circular(
+                            UIConstants.borderRadiusMedium),
                       ),
                       child: Text(
                         authState.error!,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -117,14 +120,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       prefixIcon: const Icon(Icons.lock_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
                         ),
                         onPressed: () {
                           setState(() {
                             _obscurePassword = !_obscurePassword;
                           });
                         },
-                        tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                        tooltip: _obscurePassword
+                            ? 'Show password'
+                            : 'Hide password',
                       ),
                       border: const OutlineInputBorder(),
                     ),
@@ -142,16 +149,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(UIConstants.borderRadiusMedium),
+                        borderRadius: BorderRadius.circular(
+                            UIConstants.borderRadiusMedium),
                       ),
                     ),
                     child: authState.isLoading
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
                           )
-                        : Text('Login', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                        : Text('Login',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyLarge
+                                ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

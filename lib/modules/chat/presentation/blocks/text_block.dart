@@ -21,7 +21,8 @@ class TextBlock extends StatelessWidget {
       if (currentParagraph.trim().isNotEmpty) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 10), // Gemini-style paragraph spacing
+            padding: const EdgeInsets.only(
+                bottom: 10), // Gemini-style paragraph spacing
             child: MarkdownBody(
               data: currentParagraph.trim(),
               selectable: true,
@@ -38,7 +39,7 @@ class TextBlock extends StatelessWidget {
 
     for (final line in lines) {
       final trimmedLine = line.trim();
-      
+
       if (trimmedLine.startsWith('#')) {
         flushParagraph();
         widgets.add(
@@ -55,13 +56,14 @@ class TextBlock extends StatelessWidget {
         );
         isFirstBlock = false;
         isAfterHeading = true;
-      } else if (trimmedLine.startsWith('- ') || 
-                 trimmedLine.startsWith('* ') || 
-                 RegExp(r'^\d+\.\s').hasMatch(trimmedLine)) {
+      } else if (trimmedLine.startsWith('- ') ||
+          trimmedLine.startsWith('* ') ||
+          RegExp(r'^\d+\.\s').hasMatch(trimmedLine)) {
         flushParagraph();
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 6), // Spacing between list items
+            padding:
+                const EdgeInsets.only(bottom: 6), // Spacing between list items
             child: MarkdownBody(
               data: trimmedLine,
               styleSheet: _getStyleSheet(context, type: _BlockType.action),
@@ -72,7 +74,9 @@ class TextBlock extends StatelessWidget {
       } else if (trimmedLine.isEmpty) {
         flushParagraph();
         isAfterHeading = false;
-      } else if (isAfterHeading && trimmedLine.contains(':') && !trimmedLine.startsWith('-')) {
+      } else if (isAfterHeading &&
+          trimmedLine.contains(':') &&
+          !trimmedLine.startsWith('-')) {
         // Metadata detection: Split label and value for explicit weighting
         widgets.add(_buildMetadataLine(context, trimmedLine));
       } else {
@@ -92,7 +96,8 @@ class TextBlock extends StatelessWidget {
     final styleSheet = _getStyleSheet(context, type: _BlockType.metadata);
     final style = styleSheet.p!;
     final colonIndex = line.indexOf(':');
-    
+    final theme = Theme.of(context);
+
     if (colonIndex == -1) {
       return Padding(
         padding: const EdgeInsets.only(bottom: UIConstants.paddingVSmall),
@@ -118,7 +123,7 @@ class TextBlock extends StatelessWidget {
               text: cleanLabel,
               style: style.copyWith(
                 fontWeight: FontWeight.bold, // Label-only bolding
-                color: AppColors.textPrimary, 
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const TextSpan(text: ' '),
@@ -126,7 +131,7 @@ class TextBlock extends StatelessWidget {
               text: cleanValue,
               style: style.copyWith(
                 fontWeight: FontWeight.normal, // Explicit style reset for value
-                color: AppColors.textSecondary,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -135,11 +140,12 @@ class TextBlock extends StatelessWidget {
     );
   }
 
-  MarkdownStyleSheet _getStyleSheet(BuildContext context, {required _BlockType type}) {
+  MarkdownStyleSheet _getStyleSheet(BuildContext context,
+      {required _BlockType type}) {
     final theme = Theme.of(context);
-    
-    final neutralDark = AppColors.textPrimary;
-    final neutralMuted = AppColors.textSecondary;
+
+    final neutralDark = theme.colorScheme.onSurface;
+    final neutralMuted = theme.colorScheme.onSurfaceVariant;
     final accentColor = AppColors.accentGreen;
 
     return MarkdownStyleSheet.fromTheme(theme).copyWith(
@@ -182,7 +188,8 @@ class TextBlock extends StatelessWidget {
         color: accentColor,
         fontWeight: FontWeight.bold,
       ),
-      listBulletPadding: const EdgeInsets.only(right: 12, top: 2), // Improved alignment
+      listBulletPadding:
+          const EdgeInsets.only(right: 12, top: 2), // Improved alignment
       listIndent: 24.0,
       horizontalRuleDecoration: BoxDecoration(
         border: Border(

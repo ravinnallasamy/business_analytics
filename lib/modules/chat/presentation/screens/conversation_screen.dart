@@ -482,7 +482,7 @@ class _SuggestionCardState extends State<_SuggestionCard> {
           decoration: BoxDecoration(
             color: _hovered
                 ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.8)
-                : Colors.white,
+                : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
             boxShadow: _hovered
                 ? [
@@ -511,7 +511,7 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                       style: theme.textTheme.bodyMedium!.copyWith(
                         fontWeight:
                             _hovered ? FontWeight.w900 : FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: theme.colorScheme.onSurface,
                       ),
                       child: Text(widget.item.title),
                     ),
@@ -520,8 +520,8 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                       widget.item.description,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: _hovered
-                            ? AppColors.textPrimary.withOpacity(0.7)
-                            : AppColors.textSecondary,
+                            ? theme.colorScheme.onSurface.withOpacity(0.7)
+                            : theme.colorScheme.onSurfaceVariant,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -536,7 +536,7 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                 decoration: BoxDecoration(
                   color: _hovered
                       ? AppColors.accentGreen
-                      : AppColors.primaryBackground,
+                      : theme.colorScheme.surface,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(

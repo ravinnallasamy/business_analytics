@@ -73,7 +73,7 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                       minLines: 1,
                       textInputAction: TextInputAction.newline,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: const Color(0xFF444746), // Dimmed text color
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 18,
                             fontWeight: FontWeight.w400,
                             fontFamily: 'Inter',
